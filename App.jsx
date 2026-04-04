@@ -29,7 +29,6 @@ import {
 const GOOGLE_WEB_APP_URL =
   'https://script.google.com/macros/s/AKfycbxYS_NIxHmASVpUJVGos-5d14FHs0w08f4YE_XBd9BktfmJ5HkNU60y6iFfxLxh8WtA/exec';
 
-// ✅ CHAVE 100% CORRIGIDA (Copiada da tua foto original do painel do Firebase)
 const firebaseConfig = {
   apiKey: 'AIzaSyC4KvrWHEdQtyCOyOGdCf07SxFIdgTugY8',
   authDomain: 'etx-academy-nr20.firebaseapp.com',
@@ -60,7 +59,7 @@ const playAudio = (type) => {
   } catch (err) {}
 };
 
-// --- DADOS DAS QUESTÕES (21 ORIGINAIS + 9 NOVAS DA APOSTILA) ---
+// --- DADOS DAS QUESTÕES ---
 const QUESTIONS = [
   {
     id: 1,
@@ -330,7 +329,6 @@ const QUESTIONS = [
     explanation:
       'O capacete é o clássico exemplo de Equipamento de Proteção Individual (EPI), pois protege unicamente o crânio do próprio funcionário que o está utilizando.',
   },
-  // --- NOVAS QUESTÕES (22-30) BASEADAS NA APOSTILA ---
   {
     id: 22,
     text: 'Qual é a frequência recomendada para o curso de atualização (reciclagem) da maioria dos frentistas?',
@@ -420,11 +418,10 @@ const QUESTIONS = [
   },
 ];
 
-// --- FUNÇÃO INTEGRAÇÃO GEMINI API (CORRIGIDA) ---
+// --- FUNÇÃO INTEGRAÇÃO GEMINI API (MUITO MELHORADA PARA DEBUG) ---
 const callGeminiAPI = async (prompt) => {
   const apiKey = 'AIzaSyBUQUCeNuWCYXvpZRgtgEpbkNkflIExKsI';
 
-  // ✅ MUDANÇA AQUI: Usar a versão oficial, rápida e estável do Gemini (gemini-1.5-flash)
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   
   const payload = {
@@ -439,6 +436,7 @@ const callGeminiAPI = async (prompt) => {
   };
   
   const delays = [1000, 2000, 4000];
+  let lastErrorMessage = '';
   
   for (let i = 0; i < delays.length; i++) {
     try {
@@ -449,19 +447,21 @@ const callGeminiAPI = async (prompt) => {
       });
       
       if (!response.ok) {
-        // Se der erro, mostra no console do navegador para podermos investigar
-        const errorText = await response.text();
-        console.error("Erro detalhado da API:", errorText);
-        throw new Error(`HTTP Error: ${response.status}`);
+        const errorData = await response.json();
+        lastErrorMessage = errorData.error?.message || `Erro HTTP: ${response.status}`;
+        throw new Error(lastErrorMessage);
       }
       
       const data = await response.json();
       return (
-        data.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na geração da resposta.'
+        data.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na geração da resposta pela IA.'
       );
     } catch (err) {
-      console.error("Tentativa falhou:", err);
-      if (i === delays.length - 1) return 'Erro de Ligação IA. Por favor, tenta novamente.';
+      lastErrorMessage = err.message;
+      if (i === delays.length - 1) {
+        // Retorna a mensagem de erro exata do Google para o ecrã do aluno, ajudando a identificar o problema
+        return `Erro de Ligação IA do Google: "${lastErrorMessage}". Por favor, tenta novamente ou verifica as permissões da chave.`;
+      }
       await new Promise((res) => setTimeout(res, delays[i]));
     }
   }
@@ -824,6 +824,8 @@ export default function App() {
     }". Explique o motivo do erro baseando-se na NR 20.`;
 
     const explanation = await callGeminiAPI(prompt);
+    
+    // Agora verifica se a palavra 'Erro' está na string gerada pela API
     const isError = explanation.toLowerCase().includes('erro');
 
     setAiExplanations((prev) => ({
@@ -1350,7 +1352,7 @@ export default function App() {
                           ) : (
                             <div className="flex flex-col items-start gap-3">
                               {aiData?.isError && (
-                                <p className="text-red-400 text-sm">
+                                <p className="text-red-400 text-sm font-medium">
                                   {aiData.text}
                                 </p>
                               )}
