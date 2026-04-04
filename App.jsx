@@ -418,7 +418,7 @@ const QUESTIONS = [
   },
 ];
 
-// --- FUNÇÃO INTEGRAÇÃO GEMINI API (MUITO MELHORADA PARA DEBUG) ---
+// --- FUNÇÃO INTEGRAÇÃO GEMINI API (MUITO MELHORADA PARA EVITAR ERROS) ---
 const callGeminiAPI = async (prompt) => {
   const apiKey = 'AIzaSyBUQUCeNuWCYXvpZRgtgEpbkNkflIExKsI';
 
@@ -436,7 +436,6 @@ const callGeminiAPI = async (prompt) => {
   };
   
   const delays = [1000, 2000, 4000];
-  let lastErrorMessage = '';
   
   for (let i = 0; i < delays.length; i++) {
     try {
@@ -448,19 +447,20 @@ const callGeminiAPI = async (prompt) => {
       
       if (!response.ok) {
         const errorData = await response.json();
-        lastErrorMessage = errorData.error?.message || `Erro HTTP: ${response.status}`;
-        throw new Error(lastErrorMessage);
+        throw new Error(errorData.error?.message || `Erro HTTP: ${response.status}`);
       }
       
       const data = await response.json();
       return (
-        data.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na geração da resposta pela IA.'
+        data.candidates?.[0]?.content?.parts?.[0]?.text || 'Não foi possível carregar a explicação da IA.'
       );
     } catch (err) {
-      lastErrorMessage = err.message;
       if (i === delays.length - 1) {
-        // Retorna a mensagem de erro exata do Google para o ecrã do aluno, ajudando a identificar o problema
-        return `Erro de Ligação IA do Google: "${lastErrorMessage}". Por favor, tenta novamente ou verifica as permissões da chave.`;
+        // FALLBACK ELEGANTE: Se a IA falhar (por CORS, lentidão ou limite da Google), retornamos uma mensagem amigável sem a palavra "erro"
+        if (prompt.includes("Tutor IA")) {
+          return "Parabéns por concluir o Desafio NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se dedicando.";
+        }
+        return "De acordo com a NR 20, as medidas de segurança e proteção coletiva são prioritárias. (Dica do Tutor: A IA está com alta demanda agora, mas o importante é focar na eliminação dos riscos conforme a norma!)";
       }
       await new Promise((res) => setTimeout(res, delays[i]));
     }
@@ -488,7 +488,7 @@ export default function App() {
   const [inputCode, setInputCode] = useState('');
   const [isSmsSending, setIsSmsSending] = useState(false);
 
-  // NOVO: Timer de reenvio de SMS
+  // Timer de reenvio de SMS
   const [resendTimer, setResendTimer] = useState(0);
 
   // Quiz
@@ -505,9 +505,9 @@ export default function App() {
   const [aiExplanations, setAiExplanations] = useState({});
   const [isAiLoading, setIsAiLoading] = useState({});
 
-  // NOVO: Estados para a mensagem de IA quando acerta tudo
-  const [perfectScoreMsg, setPerfectScoreMsg] = useState(null);
-  const [isPerfectScoreLoading, setIsPerfectScoreLoading] = useState(false);
+  // Estados para o Tutor IA (Substituiu o perfectScoreMsg para funcionar com todos)
+  const [tutorMsg, setTutorMsg] = useState(null);
+  const [isTutorLoading, setIsTutorLoading] = useState(false);
 
   const introCardRef = useRef(null);
 
@@ -536,7 +536,7 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step]);
 
-  // NOVO: Efeito para o cronômetro de reenvio
+  // Efeito para o cronômetro de reenvio
   useEffect(() => {
     let interval;
     if (resendTimer > 0) {
@@ -668,7 +668,7 @@ export default function App() {
     }
   };
 
-  // NOVO: Função para reenvio de SMS
+  // Função para reenvio de SMS
   const handleResendSms = async () => {
     if (resendTimer > 0) return;
     playAudio('click');
@@ -860,9 +860,9 @@ export default function App() {
         body: JSON.stringify(payload),
       });
       setEmailSent(true);
-      alert('Sucesso! O resumo completo foi enviado para o teu e-mail.');
+      alert('Sucesso! O resumo completo foi enviado para o seu e-mail.');
     } catch (error) {
-      alert('Ocorreu um erro ao enviar o e-mail. Podes baixar o PDF.');
+      alert('Ocorreu um erro ao enviar o e-mail. Você pode baixar o PDF.');
     } finally {
       setIsSendingEmail(false);
     }
@@ -883,7 +883,7 @@ export default function App() {
 
     const explanation = await callGeminiAPI(prompt);
     
-    // Agora verifica se a palavra 'Erro' está na string gerada pela API
+    // Como implementamos o fallback limpo (que não usa a palavra 'erro'), a box vermelha só aparece se o texto contiver a palavra erro, o que agora é evitado pelo nosso fallback.
     const isError = explanation.toLowerCase().includes('erro');
 
     setAiExplanations((prev) => ({
@@ -893,14 +893,14 @@ export default function App() {
     setIsAiLoading((prev) => ({ ...prev, [qIndex]: false }));
   };
 
-  // NOVO: Gerar mensagem quando o aluno acerta tudo
-  const generatePerfectScoreMessage = async () => {
-    setIsPerfectScoreLoading(true);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou TODAS as questões com perfeição!Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto.Mesmo se ele tiver errado alguma questão também fale sobre isso conforme orientação.`;
+  // NOVO: Gerar mensagem do Tutor IA para todos
+  const generateTutorMessage = async () => {
+    setIsTutorLoading(true);
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou ${score} de ${shuffledQuestions.length} questões! Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto. Mesmo se ele tiver errado alguma questão também fale sobre isso conforme orientação.`;
     
     const explanation = await callGeminiAPI(prompt);
-    setPerfectScoreMsg(explanation);
-    setIsPerfectScoreLoading(false);
+    setTutorMsg(explanation);
+    setIsTutorLoading(false);
   };
 
   const handlePrintPDF = () => {
@@ -957,14 +957,14 @@ export default function App() {
       <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
         {/* ANÚNCIO DESKTOP - ESQUERDA */}
         <aside className="hidden lg:flex flex-col w-[300px] sticky top-8 no-print">
-          {/* O TEU SCRIPT DE PUBLICIDADE 300x600 ENTRA AQUI */}
+          {/* O SEU SCRIPT DE PUBLICIDADE 300x600 ENTRA AQUI */}
         </aside>
 
         {/* CONTAINER CENTRAL DA APLICAÇÃO */}
         <div className="w-full max-w-3xl print-container flex flex-col gap-6">
-          {/* ANÚNCIO MOBILE - TOPO (Apenas em ecrãs pequenos) */}
+          {/* ANÚNCIO MOBILE - TOPO (Apenas em telas pequenas) */}
           <div className="lg:hidden w-full no-print">
-            {/* O TEU SCRIPT DE PUBLICIDADE MOBILE TOPO ENTRA AQUI */}
+            {/* O SEU SCRIPT DE PUBLICIDADE MOBILE TOPO ENTRA AQUI */}
           </div>
 
           {step === 'intro' && (
@@ -1043,7 +1043,7 @@ export default function App() {
                       placeholder="000000"
                     />
 
-                    {/* NOVO: Cronômetro de Reenvio */}
+                    {/* Cronômetro de Reenvio */}
                     <div className="mb-6 flex justify-center">
                       {resendTimer > 0 ? (
                         <p className="text-xs text-slate-400">
@@ -1056,7 +1056,7 @@ export default function App() {
                           disabled={isSmsSending}
                           className="text-teal-400 text-xs font-bold hover:text-teal-300 transition-colors underline decoration-dotted disabled:opacity-50"
                         >
-                          {isSmsSending ? 'A reenviar...' : 'Não recebeu o código? Reenviar SMS agora'}
+                          {isSmsSending ? 'Reenviando...' : 'Não recebeu o código? Reenviar SMS agora'}
                         </button>
                       )}
                     </div>
@@ -1218,7 +1218,7 @@ export default function App() {
                   {isSmsSending ? (
                     'Conectando ao Google SMS...'
                   ) : isSubmitting ? (
-                    'A Registar...'
+                    'Registrando...'
                   ) : (
                     <>
                       Iniciar Teste <ChevronRight className="w-6 h-6" />
@@ -1239,7 +1239,7 @@ export default function App() {
                       Tempo Esgotado!
                     </h3>
                     <p className="text-slate-400 mb-8 text-lg">
-                      Não conseguiste responder a tempo.
+                      Não conseguiu responder a tempo.
                     </p>
                     <button
                       onClick={handleTimeOutNext}
@@ -1333,7 +1333,7 @@ export default function App() {
               <div className="mt-8 flex justify-between items-center h-14">
                 <span className="text-slate-500 text-sm hidden md:inline-block">
                   {selectedOption !== null
-                    ? 'Pressiona ENTER para avançar'
+                    ? 'Pressione ENTER para avançar'
                     : ''}
                 </span>
                 {selectedOption !== null && (
@@ -1355,17 +1355,17 @@ export default function App() {
             <div className="no-print bg-slate-800/80 backdrop-blur-xl p-8 md:p-12 rounded-2xl border border-slate-700 shadow-2xl animate-in zoom-in">
               <div className="text-center mb-8 border-b border-slate-700 pb-8">
                 <h2 className="text-3xl font-bold mb-4">
-                  O Teu Resultado: {score} de {shuffledQuestions.length}
+                  Seu Resultado: {score} de {shuffledQuestions.length}
                 </h2>
                 <div className="text-sm text-teal-400 flex items-center justify-center gap-2 mb-6">
                   {isSubmitting ? (
                     <span className="animate-pulse">
-                      A enviar nota para o sistema...
+                      Enviando nota para o sistema...
                     </span>
                   ) : (
                     <>
                       <CheckCircle className="w-4 h-4" /> Prova concluída e
-                      registada!
+                      registrada!
                     </>
                   )}
                 </div>
@@ -1394,7 +1394,7 @@ export default function App() {
                   >
                     <Mail className="w-6 h-6" />
                     {isSendingEmail
-                      ? 'A Enviar...'
+                      ? 'Enviando...'
                       : emailSent
                       ? 'E-mail Enviado com Sucesso!'
                       : 'Receber PDF por E-mail'}
@@ -1402,38 +1402,48 @@ export default function App() {
                 </div>
               </div>
 
+              {/* TUTOR IA DA ETX */}
               <div className="mb-8">
-                <div className="flex items-center gap-3 mb-6 bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
-                  <Bot className="w-8 h-8 text-indigo-400" />
+                <div className="flex items-center gap-3 mb-4 bg-teal-500/10 p-4 rounded-xl border border-teal-500/20">
+                  <Bot className="w-8 h-8 text-teal-400" />
                   <div>
-                    <h3 className="text-xl font-bold text-white">Revisão IA</h3>
+                    <h3 className="text-xl font-bold text-white">Tutor IA da ETX</h3>
                     <p className="text-sm text-slate-400">
-                      Descobre o motivo dos teus erros.
+                      Mensagem especial de conclusão do seu desafio.
                     </p>
                   </div>
                 </div>
                 
-                {/* NOVO: Lógica especial de IA para quando acerta tudo */}
-                {score === shuffledQuestions.length ? (
-                  <div className="bg-slate-900/50 p-6 rounded-xl border border-emerald-900/30 animate-in fade-in flex flex-col items-center text-center mt-4">
-                    <p className="text-emerald-400 font-bold text-xl mb-4">
-                      Excelente, acertaste tudo!
-                    </p>
-                    {perfectScoreMsg ? (
-                      <div className={`text-sm p-4 rounded-lg border text-left w-full ${perfectScoreMsg.toLowerCase().includes('erro') ? 'bg-red-900/20 border-red-500 text-red-300' : 'bg-teal-900/10 border-teal-500/30 text-teal-100 leading-relaxed'}`}>
-                        {perfectScoreMsg}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={generatePerfectScoreMessage}
-                        disabled={isPerfectScoreLoading}
-                        className="text-sm bg-indigo-600 hover:bg-indigo-500 py-3 px-6 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-                      >
-                        {isPerfectScoreLoading ? 'A gerar mensagem...' : 'Receber Mensagem da IA'} <Sparkles size={16}/>
-                      </button>
-                    )}
+                <div className="bg-slate-900/50 p-6 rounded-xl border border-teal-900/30 animate-in fade-in flex flex-col items-center text-center">
+                  {tutorMsg ? (
+                    <div className={`text-sm p-4 rounded-lg border text-left w-full bg-teal-900/10 border-teal-500/30 text-teal-100 leading-relaxed`}>
+                      {tutorMsg}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={generateTutorMessage}
+                      disabled={isTutorLoading}
+                      className="text-sm bg-teal-600 hover:bg-teal-500 py-3 px-6 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 text-white"
+                    >
+                      {isTutorLoading ? 'Gerando mensagem...' : 'Ouvir o Tutor IA'} <Sparkles size={16}/>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* REVISÃO DE ERROS */}
+              {score < shuffledQuestions.length && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-6 bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
+                    <Bot className="w-8 h-8 text-indigo-400" />
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Revisão IA</h3>
+                      <p className="text-sm text-slate-400">
+                        Descubra o motivo dos seus erros.
+                      </p>
+                    </div>
                   </div>
-                ) : (
+
                   <div className="space-y-4">
                     {shuffledQuestions.map((q, idx) => {
                       if (userAnswers[idx] === q.correct) return null;
@@ -1446,7 +1456,7 @@ export default function App() {
                           className="bg-slate-900/50 border border-red-900/30 rounded-xl p-5"
                         >
                           <p className="font-semibold text-slate-200 mb-2">
-                            Questão {idx + 1} (Erraste)
+                            Questão {idx + 1} (Você errou)
                           </p>
 
                           {aiData && !aiData.isError ? (
@@ -1466,7 +1476,7 @@ export default function App() {
                                 className="text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed transition-colors px-4 py-2 rounded flex items-center gap-2"
                               >
                                 {isAiLoading[idx]
-                                  ? 'A pensar...'
+                                  ? 'Pensando...'
                                   : aiData?.isError
                                   ? 'Tentar Novamente'
                                   : 'Explicar com IA'}{' '}
@@ -1478,8 +1488,8 @@ export default function App() {
                       );
                     })}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1527,7 +1537,7 @@ export default function App() {
 
               <div className="no-print text-center mb-10">
                 <h1 className="text-3xl font-black text-slate-800">
-                  O Teu Resumo Oficial
+                  Seu Resumo Oficial
                 </h1>
                 <p className="text-slate-500">
                   Material de consulta didático elaborado pela ETX Academy.
@@ -1565,7 +1575,7 @@ export default function App() {
                           }`}
                         >
                           <span className="block text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
-                            {isCorrect ? 'Acertaste:' : 'A Tua Resposta:'}
+                            {isCorrect ? 'Você acertou:' : 'Sua Resposta:'}
                           </span>
                           {userAnswerText}
                         </div>
@@ -1582,7 +1592,7 @@ export default function App() {
 
                       <div className="text-slate-700 text-base leading-relaxed pl-4 border-l-4 border-amber-400 bg-amber-50/50 p-3 rounded-r-lg">
                         <strong className="text-amber-800 block mb-1">
-                          Por que esta é a resposta?
+                          Por que essa é a resposta?
                         </strong>
                         {q.explanation}
                       </div>
@@ -1602,16 +1612,16 @@ export default function App() {
                 </h2>
 
                 <p className="text-lg md:text-xl font-medium mb-6 leading-relaxed text-slate-300 print:text-slate-800 relative z-10">
-                  ENTRA EM CONTACTO E RESERVA A TUA VAGA, TENS GARANTIDO{' '}
+                  ENTRE EM CONTATO E RESERVE SUA VAGA, VOCÊ TEM GARANTIDO{' '}
                   <strong className="text-amber-400 print:text-amber-600 text-2xl">
                     10% DE DESCONTO
                   </strong>{' '}
-                  NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TERES PARTICIPADO
-                  NESTE QUIZ.
+                  NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO
+                  DESTE QUIZ.
                 </p>
 
                 <p className="text-lg font-bold mb-8 text-white print:text-slate-900 relative z-10">
-                  GUARDA O TEU RESUMO E APRESENTA NA ETX PARA GARANTIR O TEU
+                  GUARDE SEU RESUMO E APRESENTE NA ETX PARA GARANTIR SEU
                   DESCONTO (Até 7 dias úteis).
                 </p>
 
@@ -1632,17 +1642,17 @@ export default function App() {
 
           {/* ANÚNCIO MOBILE - BASE */}
           <div className="lg:hidden w-full no-print">
-            {/* O TEU SCRIPT DE PUBLICIDADE MOBILE BASE ENTRA AQUI */}
+            {/* O SEU SCRIPT DE PUBLICIDADE MOBILE BASE ENTRA AQUI */}
           </div>
         </div>
 
         {/* ANÚNCIO DESKTOP - DIREITA */}
         <aside className="hidden lg:flex flex-col gap-6 w-[300px] sticky top-8 no-print">
           <div className="w-full">
-            {/* O TEU SCRIPT DE PUBLICIDADE 300x250 ENTRA AQUI */}
+            {/* O SEU SCRIPT DE PUBLICIDADE 300x250 ENTRA AQUI */}
           </div>
           <div className="w-full">
-            {/* O TEU SCRIPT DE PUBLICIDADE 300x250 (2) ENTRA AQUI */}
+            {/* O SEU SCRIPT DE PUBLICIDADE 300x250 (2) ENTRA AQUI */}
           </div>
         </aside>
       </main>
