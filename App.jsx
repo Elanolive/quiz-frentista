@@ -488,6 +488,9 @@ export default function App() {
   const [inputCode, setInputCode] = useState('');
   const [isSmsSending, setIsSmsSending] = useState(false);
 
+  // NOVO: Timer de reenvio de SMS
+  const [resendTimer, setResendTimer] = useState(0);
+
   // Quiz
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -501,6 +504,10 @@ export default function App() {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [aiExplanations, setAiExplanations] = useState({});
   const [isAiLoading, setIsAiLoading] = useState({});
+
+  // NOVO: Estados para a mensagem de IA quando acerta tudo
+  const [perfectScoreMsg, setPerfectScoreMsg] = useState(null);
+  const [isPerfectScoreLoading, setIsPerfectScoreLoading] = useState(false);
 
   const introCardRef = useRef(null);
 
@@ -528,6 +535,17 @@ export default function App() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step]);
+
+  // NOVO: Efeito para o cronômetro de reenvio
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   // Inicializa o reCAPTCHA invisível do Firebase de forma segura para o React
   useEffect(() => {
@@ -630,10 +648,50 @@ export default function App() {
       window.confirmationResult = confirmationResult;
       setIsSmsSending(false);
       setShowVerification(true);
+      setResendTimer(60); // Inicia o contador de reenvio
     } catch (error) {
       console.error('Erro Firebase SMS:', error);
       alert(
         'Erro do Firebase: ' +
+          error.message +
+          '\n\nVerifique se o domínio atual está na lista de autorizados do Firebase Console.'
+      );
+      setIsSmsSending(false);
+
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.render().then((widgetId) => {
+            grecaptcha.reset(widgetId);
+          });
+        } catch (e) {}
+      }
+    }
+  };
+
+  // NOVO: Função para reenvio de SMS
+  const handleResendSms = async () => {
+    if (resendTimer > 0) return;
+    playAudio('click');
+    setIsSmsSending(true);
+
+    const justNumbers = userData.whatsapp.replace(/\D/g, '');
+    const formattedPhone = `+55${justNumbers}`;
+
+    try {
+      const appVerifier = window.recaptchaVerifier;
+      const confirmationResult = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        appVerifier
+      );
+
+      window.confirmationResult = confirmationResult;
+      setIsSmsSending(false);
+      setResendTimer(60);
+    } catch (error) {
+      console.error('Erro Firebase SMS (Reenvio):', error);
+      alert(
+        'Erro do Firebase ao reenviar: ' +
           error.message +
           '\n\nVerifique se o domínio atual está na lista de autorizados do Firebase Console.'
       );
@@ -835,6 +893,16 @@ export default function App() {
     setIsAiLoading((prev) => ({ ...prev, [qIndex]: false }));
   };
 
+  // NOVO: Gerar mensagem quando o aluno acerta tudo
+  const generatePerfectScoreMessage = async () => {
+    setIsPerfectScoreLoading(true);
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou TODAS as questões com perfeição!Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto.Mesmo se ele tiver errado alguma questão também fale sobre isso conforme orientação.`;
+    
+    const explanation = await callGeminiAPI(prompt);
+    setPerfectScoreMsg(explanation);
+    setIsPerfectScoreLoading(false);
+  };
+
   const handlePrintPDF = () => {
     window.print();
   };
@@ -974,6 +1042,25 @@ export default function App() {
                       className="w-full bg-slate-950 border-2 border-slate-600 text-center text-4xl tracking-[0.2em] p-4 rounded-xl text-white mb-6 focus:border-teal-500 outline-none transition-colors"
                       placeholder="000000"
                     />
+
+                    {/* NOVO: Cronômetro de Reenvio */}
+                    <div className="mb-6 flex justify-center">
+                      {resendTimer > 0 ? (
+                        <p className="text-xs text-slate-400">
+                          Pode reenviar o SMS em <span className="font-bold text-teal-400">{resendTimer}s</span>
+                        </p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendSms}
+                          disabled={isSmsSending}
+                          className="text-teal-400 text-xs font-bold hover:text-teal-300 transition-colors underline decoration-dotted disabled:opacity-50"
+                        >
+                          {isSmsSending ? 'A reenviar...' : 'Não recebeu o código? Reenviar SMS agora'}
+                        </button>
+                      )}
+                    </div>
+
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1325,10 +1412,27 @@ export default function App() {
                     </p>
                   </div>
                 </div>
+                
+                {/* NOVO: Lógica especial de IA para quando acerta tudo */}
                 {score === shuffledQuestions.length ? (
-                  <p className="text-emerald-400 text-center font-bold">
-                    Excelente, acertaste tudo!
-                  </p>
+                  <div className="bg-slate-900/50 p-6 rounded-xl border border-emerald-900/30 animate-in fade-in flex flex-col items-center text-center mt-4">
+                    <p className="text-emerald-400 font-bold text-xl mb-4">
+                      Excelente, acertaste tudo!
+                    </p>
+                    {perfectScoreMsg ? (
+                      <div className={`text-sm p-4 rounded-lg border text-left w-full ${perfectScoreMsg.toLowerCase().includes('erro') ? 'bg-red-900/20 border-red-500 text-red-300' : 'bg-teal-900/10 border-teal-500/30 text-teal-100 leading-relaxed'}`}>
+                        {perfectScoreMsg}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={generatePerfectScoreMessage}
+                        disabled={isPerfectScoreLoading}
+                        className="text-sm bg-indigo-600 hover:bg-indigo-500 py-3 px-6 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                      >
+                        {isPerfectScoreLoading ? 'A gerar mensagem...' : 'Receber Mensagem da IA'} <Sparkles size={16}/>
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {shuffledQuestions.map((q, idx) => {
