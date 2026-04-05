@@ -1083,19 +1083,25 @@ export default function App() {
       </header>
 
       {/* REFORÇO NO LAYOUT: asides idênticos à esquerda e à direita garantem que o meio não fica torto */}
-      <main className="flex-grow flex flex-col xl:flex-row items-center xl:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
+      <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-4 xl:gap-8 w-full max-w-[1400px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
-          <div className="w-full h-[600px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral Esquerdo<br/><span className="text-xs mt-2 opacity-50">(300x600)</span>
+        <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
           </div>
         </aside>
 
-        <div className="w-full max-w-3xl print-container flex flex-col gap-6">
+        <div className="w-full max-w-3xl flex-1 print-container flex flex-col gap-6">
 
           {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/50 rounded-2xl flex items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mb-2">
+          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/50 rounded-2xl flex items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mb-2 shrink-0">
             Espaço para Anúncio (Topo)
           </div>
 
@@ -1151,7 +1157,7 @@ export default function App() {
               onMouseMove={handleMouseMoveCard}
               onMouseLeave={handleMouseLeaveCard}
               style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
-              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden group"
+              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden group flex flex-col"
             >
               <div
                 className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
@@ -1162,12 +1168,12 @@ export default function App() {
               />
               
               {/* BOTÃO DE VOLTAR - TELA DE CREDENCIAIS */}
-              <div className="flex justify-start mb-6 relative z-10">
+              <div className="flex justify-start mb-6 relative z-10 w-full">
                 <button
                   type="button"
                   onClick={() => {
                     playAudio('click');
-                    if (window.confirm("Atenção: Os dados preenchidos serão perdidos caso voltar. Deseja realmente voltar para a página inicial?")) {
+                    if (window.confirm("Os dados serão perdidos caso voltar. Deseja mesmo voltar?")) {
                       setUserData({ nome: '', email: '', whatsapp: '', nascimento: '', fezCurso: '', qualEscola: '' });
                       setStep('intro');
                     }
@@ -1894,15 +1900,21 @@ export default function App() {
           )}
 
           {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mt-6">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mt-6 shrink-0">
             Anúncio Central Inferior<br/><span className="text-xs mt-2 opacity-50">(Responsivo)</span>
           </div>
         </div>
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
-           <div className="w-full h-[600px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral Direito<br/><span className="text-xs mt-2 opacity-50">(300x600)</span>
+        <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
+           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
           </div>
         </aside>
       </main>
