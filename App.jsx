@@ -53,7 +53,8 @@ const SOUNDS = {
   timeout: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg',
   win_high: 'https://actions.google.com/sounds/v1/crowds/crowd_cheer_and_applause.ogg',
   win_mid: 'https://actions.google.com/sounds/v1/cartoon/drum_roll.ogg',
-  fail: 'https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_bump.ogg'
+  fail: 'https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_bump.ogg',
+  typing: 'https://actions.google.com/sounds/v1/office/keyboard_typing_fast.ogg'
 };
 
 const playAudio = (type) => {
@@ -433,7 +434,11 @@ const callGeminiAPI = async (prompt, isTutorMsg = false) => {
     systemInstruction: {
       parts: [
         {
-          text: `Você é Eliot, a Inteligência Artificial biotecnológica da escola ETX Academy. Regra número 1: Se for uma mensagem de tutor, você DEVE iniciar sua resposta com: "Oi, eu sou o Eliot, a inteligência Artificial biotecnológica da ETX Academy!". Baseie toda explicação no conteúdo oficial da norma regulamentadora NR 20, com detalhes fáceis de entender. Seja amigável e encorajador.`,
+          text: `Você é Eliot, a Inteligência Artificial biotecnológica da escola ETX Academy. Regras obrigatórias:
+          1. Baseie toda explicação no conteúdo oficial da norma regulamentadora NR 20.
+          2. EVITE citar a FISPQ, a menos que seja estritamente necessário. O foco principal deve ser a NR 20.
+          3. Se o assunto for gases, explique de forma MUITO SIMPLES: GLP (Gás Liquefeito de Petróleo) é o famoso "gás de cozinha", armazenado em estado líquido sob pressão. GNV (Gás Natural Veicular) é outro tipo de combustível que se mantém em estado gasoso sob altíssima pressão.
+          4. Seja amigável, direto e encorajador.`,
         },
       ],
     },
@@ -458,13 +463,8 @@ const callGeminiAPI = async (prompt, isTutorMsg = false) => {
       
     } catch (err) {
       if (i === delays.length - 1) {
-        // FALLBACK GARANTIDO: Se a IA falhar de vez, retornamos um texto pré-programado idêntico à IA
-        // Assim o aluno nunca vê um erro vermelho e a experiência não quebra.
-        if (isTutorMsg) {
-          return "Oi, eu sou o Eliot, a inteligência Artificial biotecnológica da ETX Academy! Parabéns pela conclusão do Desafio da NR 20. O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por empresas e pessoas que realmente buscam aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.";
-        } else {
-          return "Com base na NR 20, as medidas de prevenção, como a proteção coletiva, isolamento de fontes de calor e a leitura atenta da FISPQ, são fundamentais para evitar acidentes com inflamáveis. (Dica do Eliot: Os manuais oficiais da ETX reforçam que o conhecimento salva vidas!)";
-        }
+        // Se todas as tentativas falharem, lançamos o erro para que a função principal use a solução infalível de fallback.
+        throw new Error("API Indisponível");
       }
       await new Promise((res) => setTimeout(res, delays[i]));
     }
@@ -513,6 +513,9 @@ export default function App() {
   // Estados para o Tutor IA 
   const [tutorMsg, setTutorMsg] = useState(null);
   const [isTutorLoading, setIsTutorLoading] = useState(false);
+  const [displayedIntro, setDisplayedIntro] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const typingAudioRef = useRef(null);
 
   // Estado para Animação Flutuante
   const [feedbackOverlay, setFeedbackOverlay] = useState(null);
@@ -544,7 +547,46 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step]);
 
-  // Inicializa o reCAPTCHA invisível
+  // Efeito do Tutor IA Automático e Balão Animado
+  useEffect(() => {
+    if (step === 'result') {
+      // 1. Gerar mensagem de feedback principal da IA
+      generateTutorMessage();
+
+      // 2. Animação do Balão de Fala e Som de Digitação
+      const fullIntro = "Oi, eu sou o Eliot, a inteligência Artificial biotecnológica da ETX Academy!";
+      setIsTyping(true);
+      setDisplayedIntro("");
+      let charIndex = 0;
+
+      typingAudioRef.current = new Audio(SOUNDS.typing);
+      typingAudioRef.current.loop = true;
+      typingAudioRef.current.volume = 0.5;
+      typingAudioRef.current.play().catch(e => console.log('Audio typing bloqueado', e));
+
+      const typingInterval = setInterval(() => {
+        setDisplayedIntro(fullIntro.substring(0, charIndex + 1));
+        charIndex++;
+        if (charIndex >= fullIntro.length) {
+          clearInterval(typingInterval);
+          setIsTyping(false);
+          if (typingAudioRef.current) {
+            typingAudioRef.current.pause();
+            typingAudioRef.current.currentTime = 0;
+          }
+        }
+      }, 40); // Velocidade da digitação rápida
+
+      return () => {
+        clearInterval(typingInterval);
+        if (typingAudioRef.current) {
+          typingAudioRef.current.pause();
+        }
+      };
+    }
+  }, [step]);
+
+  // Efeito para o cronômetro de reenvio
   useEffect(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
@@ -908,27 +950,43 @@ export default function App() {
     const question = shuffledQuestions[qIndex];
     const userAnswerStr = userAnswers[qIndex] !== null ? question.options[userAnswers[qIndex]] : 'Nenhuma (tempo esgotado)';
     
-    const prompt = `O aluno errou a questão: "${question.text}". Ele respondeu: "${userAnswerStr}". A resposta correta era: "${question.options[question.correct]}". Como Eliot, IA da ETX Academy, explique de forma detalhada mas fácil de entender o porquê do erro, usando o conteúdo oficial da NR 20.`;
+    const prompt = `O aluno errou a questão: "${question.text}". Ele respondeu: "${userAnswerStr}". A resposta correta era: "${question.options[question.correct]}". Como Eliot, IA da ETX Academy, explique de forma detalhada mas fácil de entender o porquê do erro, focando nas diretrizes da NR 20.`;
 
-    const explanation = await callGeminiAPI(prompt, false);
-    setIsAiLoading((prev) => ({ ...prev, [qIndex]: false }));
-    setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: explanation, isError: false } }));
+    try {
+      const explanation = await callGeminiAPI(prompt, false);
+      const isError = explanation.toLowerCase().includes('erro api');
+      setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: explanation, isError: isError } }));
+    } catch (e) {
+      // SOLUÇÃO INFALÍVEL: Se a API falhar completamente (limites, rede), entrega a explicação local instantaneamente.
+      const fallbackExplicacao = `A alternativa correta é: "${question.options[question.correct]}". ${question.explanation} (Dica do Eliot: Conforme a NR 20, seguir as medidas de segurança é vital para evitar acidentes com inflamáveis).`;
+      setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: fallbackExplicacao, isError: false } }));
+    } finally {
+      setIsAiLoading((prev) => ({ ...prev, [qIndex]: false }));
+    }
   };
 
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou ${score} de ${shuffledQuestions.length} questões! Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
+    const perc = Math.round((score / shuffledQuestions.length) * 100);
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador.`;
     
-    const explanation = await callGeminiAPI(prompt, true);
-    setTutorMsg(explanation);
-    setIsTutorLoading(false);
+    try {
+      const explanation = await callGeminiAPI(prompt, true);
+      setTutorMsg(explanation);
+    } catch(e) {
+      // FALLBACK INFALÍVEL DO TUTOR
+      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
+    } finally {
+      setIsTutorLoading(false);
+    }
   };
 
   const handlePrintPDF = () => {
     window.print();
   };
 
-  const shareText = `Acabei de tirar nota ${score} no Desafio Avaliativo de NR20 da ETX Academy! Duvido você bater minha nota. Faça o teste aqui: https://quiz-frentista-etx-academy.vercel.app`;
+  const percentage = shuffledQuestions.length > 0 ? Math.round((score / shuffledQuestions.length) * 100) : 0;
+  const shareText = `Acabei de acertar ${percentage}% no Desafio de NR20 da ETX Academy! Duvido você bater minha nota. Faça o teste aqui: https://quiz-frentista-etx-academy.vercel.app`;
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
@@ -1038,7 +1096,7 @@ export default function App() {
                 <Sparkles className="w-8 h-8 text-[#00AAFF] absolute -top-2 -right-2 animate-pulse" />
               </div>
               <h2 className="text-4xl font-black mb-6 relative z-10 text-white tracking-tight">
-                Desafio Avaliativo NR 20
+                Desafio NR 20
               </h2>
 
               <p className="text-slate-300 mb-10 max-w-lg mx-auto text-lg leading-relaxed relative z-10 font-medium">
@@ -1433,7 +1491,7 @@ export default function App() {
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-6 h-6" /> Prova concluída e registrada!
+                      <CheckCircle className="w-6 h-6" /> Teste concluído!
                     </>
                   )}
                 </div>
@@ -1494,19 +1552,28 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="bg-[#020617] p-8 rounded-3xl border border-slate-800 shadow-inner flex flex-col items-center text-center">
+                <div className="bg-[#020617] p-6 md:p-8 rounded-3xl border border-slate-800 shadow-inner flex flex-col items-start w-full">
+                  
+                  {/* BALÃO DE FALA ANIMADO (Apresentação) */}
+                  <div className="relative bg-[#00AAFF]/10 border border-[#00AAFF]/40 text-[#00AAFF] p-4 md:p-5 rounded-3xl rounded-tl-none w-full shadow-md mb-6 animate-in zoom-in fade-in duration-700 origin-top-left">
+                    <div className="absolute top-0 left-[-12px] w-0 h-0 border-t-[14px] border-t-[#00AAFF]/10 border-l-[12px] border-l-transparent"></div>
+                    <p className="font-bold text-lg md:text-xl font-mono leading-relaxed min-h-[1.5rem]">
+                      {displayedIntro}
+                      <span className={`${isTyping ? 'animate-pulse' : 'hidden'}`}>_</span>
+                    </p>
+                  </div>
+
+                  {/* MENSAGEM PRINCIPAL DO TUTOR IA */}
                   {tutorMsg ? (
-                    <div className={`text-base md:text-lg p-6 rounded-2xl border-l-4 text-left w-full shadow-md bg-[#00AAFF]/10 border-[#00AAFF] text-[#00AAFF] leading-relaxed font-medium`}>
+                    <div className="text-base md:text-lg p-6 rounded-2xl w-full shadow-sm bg-slate-800/40 border border-slate-700 text-slate-200 leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-4 duration-700">
                       {tutorMsg}
                     </div>
                   ) : (
-                    <button
-                      onClick={generateTutorMessage}
-                      disabled={isTutorLoading}
-                      className="text-lg bg-[#00AAFF] hover:bg-[#0088cc] py-4 px-10 rounded-xl font-black flex items-center gap-3 shadow-[0_0_20px_rgba(0,170,255,0.3)] transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 text-[#020617]"
-                    >
-                      {isTutorLoading ? 'Gerando mensagem...' : 'Ouvir o Tutor IA'} <Sparkles className="w-6 h-6"/>
-                    </button>
+                    <div className="w-full flex justify-center py-6">
+                      <span className="text-[#00AAFF] font-bold animate-pulse flex items-center gap-2">
+                        <Sparkles className="w-5 h-5" /> A gerar mensagem personalizada...
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1567,6 +1634,31 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* BANNER PROMOCIONAL NA TELA DE RESULTADOS */}
+              <div className="mt-12 bg-[#020617] text-white p-8 md:p-12 rounded-[2.5rem] text-center border-4 border-[#00FF00] shadow-[0_0_40px_rgba(0,255,0,0.15)] relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <School className="w-40 h-40 text-[#00FF00]" />
+                </div>
+                <h2 className="text-3xl md:text-4xl font-black mb-6 uppercase tracking-tight text-[#00FF00] relative z-10 leading-tight">
+                  ETX ACADEMY <br/><span className="text-white text-xl md:text-2xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
+                </h2>
+                <p className="text-lg font-medium mb-6 text-slate-300 relative z-10">
+                  ENTRE EM CONTATO E RESERVE SUA VAGA. <br/>VOCÊ TEM GARANTIDO{' '}
+                  <strong className="text-[#00AAFF] text-2xl font-black block mt-2 mb-2">
+                    10% DE DESCONTO
+                  </strong>{' '}
+                  NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO DESTE QUIZ.
+                </p>
+                <a
+                  href="https://wa.me/5569981197373?text=Ol%C3%A1%21%20Acabei%20de%20realizar%20o%20Desafio%20Avaliativo%20da%20NR%2020%20e%20gostaria%20de%20saber%20em%20quais%20cursos%20posso%20aplicar%20o%20meu%20benef%C3%ADcio%20de%2010%25%20de%20desconto."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:scale-105 transition-transform text-[#020617] font-black text-xl md:text-3xl px-8 py-5 rounded-2xl items-center justify-center gap-4 relative z-10 shadow-[0_0_20px_rgba(0,255,0,0.3)] no-underline"
+                >
+                  <Phone className="w-8 h-8 fill-current" /> (69) 9 8119-7373
+                </a>
+              </div>
             </div>
           )}
 
