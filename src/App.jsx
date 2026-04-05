@@ -813,7 +813,7 @@ export default function App() {
 
     setIsSubmitting(false);
     setStep('quiz');
-    setTimeLeft(40); // 40 SEGUNDOS
+    setTimeLeft(40);
     setIsTimeOut(false);
     setSelectedOption(null);
     playAudio('start_quiz');
@@ -849,7 +849,7 @@ export default function App() {
       if (currentQIndex < shuffledQuestions.length - 1) {
         setCurrentQIndex((prev) => prev + 1);
         setSelectedOption(null);
-        setTimeLeft(40); // 40 SEGUNDOS
+        setTimeLeft(40);
         setIsTimeOut(false);
       } else {
         processQuizFinish(newAnswers);
@@ -866,7 +866,7 @@ export default function App() {
     if (currentQIndex < shuffledQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
-      setTimeLeft(40); // 40 SEGUNDOS
+      setTimeLeft(40);
       setIsTimeOut(false);
     } else {
       processQuizFinish(newAnswers);
@@ -1016,6 +1016,11 @@ export default function App() {
 
       <style>
         {`
+          body {
+            background-color: #020617;
+            margin: 0;
+            padding: 0;
+          }
           @keyframes floatUp {
             0% { transform: translateY(110vh) rotate(0deg) scale(1); opacity: 1; }
             100% { transform: translateY(-20vh) rotate(360deg) scale(1.5); opacity: 0; }
@@ -1098,15 +1103,15 @@ export default function App() {
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
         <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
         </aside>
 
-        <div className="w-full max-w-3xl flex-1 print-container flex flex-col gap-6">
+        <div className="w-full max-w-4xl flex-1 print-container flex flex-col gap-6">
 
           {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/20 rounded-2xl no-print mb-2 shrink-0"></div>
+          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print mb-2 shrink-0"></div>
 
           {step === 'intro' && (
             <div
@@ -1133,8 +1138,8 @@ export default function App() {
 
               <p className="text-slate-300 mb-10 max-w-lg mx-auto text-lg leading-relaxed relative z-10 font-medium">
                 <strong className="text-[#00AAFF] text-2xl block mb-3 font-black">
-                  Teste os seus conhecimentos sobre inflamáveis e segurança
-                  (NR20 para Frentistas).
+                  Teste os seus conhecimentos sobre inflamáveis e segurança <br className="hidden md:block"/>
+                  <span className="text-[#00FF00]">(NR20 para Frentistas).</span>
                 </strong>
                 Ao final, terá uma revisão guiada pela nossa{' '}
                 <span className="text-[#00AAFF] font-bold">
@@ -1542,10 +1547,6 @@ export default function App() {
             >
               <div
                 className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
-                style={{
-                  background:
-                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
-                }}
               />
               <div className="text-center mb-10 border-b border-slate-800 pb-10 relative z-10">
                 <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
@@ -1880,14 +1881,14 @@ export default function App() {
           )}
 
           {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-3xl no-print mt-6 shrink-0"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0"></div>
         </div>
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
         <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
         </aside>
       </main>
 
