@@ -1030,13 +1030,13 @@ export default function App() {
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
     const perc = Math.round((score / shuffledQuestions.length) * 100);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador.`;
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy (válido por 7 dias úteis). Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
     
     try {
       const explanation = await callGeminiAPI(prompt, true);
       setTutorMsg(explanation);
     } catch(e) {
-      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
+      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes (válido por 7 dias úteis)! Continue se capacitando.");
     } finally {
       setIsTutorLoading(false);
     }
