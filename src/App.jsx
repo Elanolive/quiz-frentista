@@ -324,7 +324,7 @@ const QUESTIONS = [
   },
   {
     id: 21,
-    text: 'Entre os itens abaixo, qual NÃO é considerado um Equipamento de Proteção Coletiva (EPC)?',
+    text: 'Entre os items abaixo, qual NÃO é considerado um Equipamento de Proteção Coletiva (EPC)?',
     options: [
       'a) Corrimão e guarda-corpos.',
       'b) Piso antiderrapante.',
@@ -498,7 +498,7 @@ export default function App() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [userAnswers, setUserAnswers] = useState([]);
   const [isTimeOut, setIsTimeOut] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30); 
+  const [timeLeft, setTimeLeft] = useState(40); 
   const [score, setScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -813,7 +813,7 @@ export default function App() {
 
     setIsSubmitting(false);
     setStep('quiz');
-    setTimeLeft(30);
+    setTimeLeft(40); // 40 SEGUNDOS
     setIsTimeOut(false);
     setSelectedOption(null);
     playAudio('start_quiz');
@@ -849,7 +849,7 @@ export default function App() {
       if (currentQIndex < shuffledQuestions.length - 1) {
         setCurrentQIndex((prev) => prev + 1);
         setSelectedOption(null);
-        setTimeLeft(30);
+        setTimeLeft(40); // 40 SEGUNDOS
         setIsTimeOut(false);
       } else {
         processQuizFinish(newAnswers);
@@ -866,7 +866,7 @@ export default function App() {
     if (currentQIndex < shuffledQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
-      setTimeLeft(30);
+      setTimeLeft(40); // 40 SEGUNDOS
       setIsTimeOut(false);
     } else {
       processQuizFinish(newAnswers);
@@ -1085,7 +1085,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
           <h1 className="text-5xl font-black tracking-tighter">
-          <span className="text-[#00AAFF]">ETX</span> <span className="text-slate-100">ACADEMY</span>
+          <span className="text-[#00AAFF]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
@@ -1156,7 +1156,9 @@ export default function App() {
           )}
 
           {step === 'form' && (
-            <div className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col">
+            <div 
+              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col"
+            >
               
               {/* BOTÃO DE VOLTAR - TELA DE CREDENCIAIS */}
               <div className="flex justify-start mb-6 relative z-10 w-full">
@@ -1393,7 +1395,9 @@ export default function App() {
           )}
 
           {step === 'quiz' && (
-            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
+            <div 
+              className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden"
+            >
               {isTimeOut && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
                   <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500 relative z-50">
@@ -1533,7 +1537,16 @@ export default function App() {
           )}
 
           {step === 'result' && (
-            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden">
+            <div 
+              className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
+            >
+              <div
+                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
+                style={{
+                  background:
+                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
+                }}
+              />
               <div className="text-center mb-10 border-b border-slate-800 pb-10 relative z-10">
                 <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
                   Seu Resultado: <span className="text-[#00FF00]">{score}</span> de {shuffledQuestions.length}
