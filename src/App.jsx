@@ -1065,10 +1065,10 @@ export default function App() {
       </header>
 
       {/* REFORÇO NO LAYOUT: asides idênticos à esquerda e à direita garantem que o meio não fica torto */}
-      <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
+      <main className="flex-grow flex flex-col xl:flex-row items-center xl:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
         
         {/* ANÚNCIO DESKTOP - ESQUERDA */}
-        <aside className="hidden lg:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
+        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
           {/* INSIRA SEU SCRIPT DE ANÚNCIO AQUI */}
         </aside>
 
@@ -1813,7 +1813,7 @@ export default function App() {
         </div>
 
         {/* ANÚNCIO DESKTOP - DIREITA (Simétrico à esquerda para manter tudo ao centro) */}
-        <aside className="hidden lg:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
+        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
            {/* INSIRA SEUS SCRIPTS DE ANÚNCIO (300X250, ETC) AQUI */}
         </aside>
       </main>
