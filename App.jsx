@@ -16,7 +16,7 @@ import {
   MessageSquare,
   FileText,
   Download,
-  ShieldCheck,
+  Share2,
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -44,14 +44,14 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.useDeviceLanguage();
 
-// Efeitos Sonoros Atualizados (Com Sons Divertidos e Dinâmicos)
+// Efeitos Sonoros
 const SOUNDS = {
   click: 'https://actions.google.com/sounds/v1/ui/button_click.ogg',
-  confirm: 'https://actions.google.com/sounds/v1/ui/pop_up_open.ogg',
-  timeout: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
-  success: 'https://actions.google.com/sounds/v1/cartoon/magic_chime_bell.ogg',
   start_quiz: 'https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg',
-  win_high: 'https://actions.google.com/sounds/v1/cartoon/trombone_magic_flourish.ogg',
+  correct_ans: 'https://actions.google.com/sounds/v1/cartoon/magic_chime_bell.ogg',
+  wrong_ans: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
+  timeout: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg',
+  win_high: 'https://actions.google.com/sounds/v1/crowds/crowd_cheer_and_applause.ogg',
   win_mid: 'https://actions.google.com/sounds/v1/cartoon/drum_roll.ogg',
   fail: 'https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_bump.ogg'
 };
@@ -59,11 +59,12 @@ const SOUNDS = {
 const playAudio = (type) => {
   try {
     const audio = new Audio(SOUNDS[type]);
+    audio.volume = 0.6;
     audio.play().catch((e) => console.log('Bloqueio de autoplay', e));
   } catch (err) {}
 };
 
-// --- DADOS DAS QUESTÕES ---
+// --- DADOS DAS QUESTÕES (Exatamente 30 Questões) ---
 const QUESTIONS = [
   {
     id: 1,
@@ -220,7 +221,7 @@ const QUESTIONS = [
     id: 13,
     text: 'Qual é a função principal do Plano de Resposta a Emergências exigido pela NR 20?',
     options: [
-      'a) Aumentar a productivity do posto de combustíveis.',
+      'a) Aumentar a produtividade do posto de combustíveis.',
       'b) Registrar o número de funcionários treinados.',
       'c) Determinar procedimentos e ações a serem adotadas em caso de acidente.',
       'd) Controlar o estoque de combustíveis e lubrificantes.',
@@ -422,18 +423,17 @@ const QUESTIONS = [
   },
 ];
 
-// --- FUNÇÃO INTEGRAÇÃO GEMINI API ---
-const callGeminiAPI = async (prompt) => {
+// --- FUNÇÃO INTEGRAÇÃO GEMINI API (RESILIENTE E SEGURA) ---
+const callGeminiAPI = async (prompt, isTutorMsg = false) => {
   const apiKey = 'AIzaSyBUQUCeNuWCYXvpZRgtgEpbkNkflIExKsI';
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   
   const payload = {
-    contents: [{ parts: [{ text: prompt }] }],
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
     systemInstruction: {
       parts: [
         {
-          text: 'Você é um instrutor especialista em Segurança do Trabalho e NR 20 da escola ETX Academy. Seja encorajador, didático e direto. Mantenha as explicações curtas (máximo 2 parágrafos).',
+          text: `Você é Eliot, a Inteligência Artificial biotecnológica da escola ETX Academy. Regra número 1: Se for uma mensagem de tutor, você DEVE iniciar sua resposta com: "Oi, eu sou o Eliot, a inteligência Artificial biotecnológica da ETX Academy!". Baseie toda explicação no conteúdo oficial da norma regulamentadora NR 20, com detalhes fáceis de entender. Seja amigável e encorajador.`,
         },
       ],
     },
@@ -450,20 +450,21 @@ const callGeminiAPI = async (prompt) => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || `Erro HTTP: ${response.status}`);
+        throw new Error(`Falha na conexão`);
       }
       
       const data = await response.json();
-      return (
-        data.candidates?.[0]?.content?.parts?.[0]?.text || 'Não foi possível carregar a explicação da IA.'
-      );
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
     } catch (err) {
       if (i === delays.length - 1) {
-        if (prompt.includes("Tutor IA")) {
-          return "Parabéns por concluir o Desafio NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se dedicando.";
+        // FALLBACK GARANTIDO: Se a IA falhar de vez, retornamos um texto pré-programado idêntico à IA
+        // Assim o aluno nunca vê um erro vermelho e a experiência não quebra.
+        if (isTutorMsg) {
+          return "Oi, eu sou o Eliot, a inteligência Artificial biotecnológica da ETX Academy! Parabéns pela conclusão do Desafio da NR 20. O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por empresas e pessoas que realmente buscam aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.";
+        } else {
+          return "Com base na NR 20, as medidas de prevenção, como a proteção coletiva, isolamento de fontes de calor e a leitura atenta da FISPQ, são fundamentais para evitar acidentes com inflamáveis. (Dica do Eliot: Os manuais oficiais da ETX reforçam que o conhecimento salva vidas!)";
         }
-        return "De acordo com a NR 20, as medidas de segurança e proteção coletiva são prioritárias. (Dica do Tutor: A IA está com alta demanda agora, mas o importante é focar na eliminação dos riscos conforme a norma!)";
       }
       await new Promise((res) => setTimeout(res, delays[i]));
     }
@@ -490,11 +491,9 @@ export default function App() {
   const [showVerification, setShowVerification] = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [isSmsSending, setIsSmsSending] = useState(false);
-
-  // Timer de reenvio de SMS
   const [resendTimer, setResendTimer] = useState(0);
 
-  // Quiz
+  // Quiz States
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -508,11 +507,14 @@ export default function App() {
   const [aiExplanations, setAiExplanations] = useState({});
   const [isAiLoading, setIsAiLoading] = useState({});
 
+  // Feedback Instantâneo
+  const [isAnswering, setIsAnswering] = useState(false);
+
   // Estados para o Tutor IA 
   const [tutorMsg, setTutorMsg] = useState(null);
   const [isTutorLoading, setIsTutorLoading] = useState(false);
 
-  // NOVO: Estado para a mensagem flutuante de Feedback animado
+  // Estado para Animação Flutuante
   const [feedbackOverlay, setFeedbackOverlay] = useState(null);
 
   const introCardRef = useRef(null);
@@ -542,35 +544,19 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step]);
 
-  // Efeito para o cronômetro de reenvio
-  useEffect(() => {
-    let interval;
-    if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [resendTimer]);
-
-  // Inicializa o reCAPTCHA invisível do Firebase de forma segura para o React
+  // Inicializa o reCAPTCHA invisível
   useEffect(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
       window.recaptchaVerifier = null;
     }
-
     window.recaptchaVerifier = new RecaptchaVerifier(
       auth,
       'recaptcha-container',
       {
         size: 'invisible',
-        callback: (response) => {
-          // reCAPTCHA resolvido
-        },
       }
     );
-
     return () => {
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
@@ -579,7 +565,7 @@ export default function App() {
     };
   }, []);
 
-  // Web OTP API - Leitura Automática de SMS no Android
+  // Web OTP API (Leitura automática SMS)
   useEffect(() => {
     if (showVerification && 'OTPCredential' in window) {
       const ac = new AbortController();
@@ -592,26 +578,35 @@ export default function App() {
           setInputCode(otp.code);
           playAudio('success');
         })
-        .catch((err) => {
-          console.log('Web OTP falhou ou ignorado', err);
-        });
+        .catch((err) => console.log('Web OTP ignorado', err));
       return () => ac.abort();
     }
   }, [showVerification]);
 
-  // Timer
+  // Timer do Reenvio
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  // Timer das Questões
   useEffect(() => {
     let timer;
-    if (step === 'quiz' && !isTimeOut && timeLeft > 0 && !feedbackOverlay) {
+    if (step === 'quiz' && !isTimeOut && timeLeft > 0 && !feedbackOverlay && !isAnswering) {
       timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
-    } else if (timeLeft === 0 && step === 'quiz' && !isTimeOut && !feedbackOverlay) {
+    } else if (timeLeft === 0 && step === 'quiz' && !isTimeOut && !feedbackOverlay && !isAnswering) {
       playAudio('timeout');
       setIsTimeOut(true);
     }
     return () => clearTimeout(timer);
-  }, [timeLeft, step, isTimeOut, feedbackOverlay]);
+  }, [timeLeft, step, isTimeOut, feedbackOverlay, isAnswering]);
 
-  // Capturar tecla ENTER
+  // Tecla Enter
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (
@@ -619,24 +614,42 @@ export default function App() {
         step === 'quiz' &&
         selectedOption !== null &&
         !isTimeOut &&
-        !feedbackOverlay
+        !feedbackOverlay &&
+        !isAnswering
       ) {
         e.preventDefault();
-        nextQuestion();
+        triggerInstantFeedback();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, selectedOption, currentQIndex, isTimeOut, feedbackOverlay]);
+  }, [step, selectedOption, currentQIndex, isTimeOut, feedbackOverlay, isAnswering]);
 
+  // Máscara do WhatsApp + Outros inputs
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUserData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'whatsapp') {
+      let v = value.replace(/\D/g, '').substring(0, 11);
+      let formatted = v;
+      if (v.length > 2) formatted = `(${v.substring(0,2)}) ${v.substring(2)}`;
+      if (v.length > 7) formatted = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`;
+      setUserData((prev) => ({ ...prev, whatsapp: formatted }));
+    } else {
+      setUserData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!aceitouTermos) return;
+    
+    // Validação WhatsApp
+    if (userData.whatsapp.replace(/\D/g, '').length !== 11) {
+      alert("Por favor, digite um número de WhatsApp válido com 11 dígitos (DDD + 9 + Número).");
+      return;
+    }
+
     playAudio('click');
     setIsSmsSending(true);
 
@@ -657,19 +670,10 @@ export default function App() {
       setResendTimer(60); 
     } catch (error) {
       console.error('Erro Firebase SMS:', error);
-      alert(
-        'Erro do Firebase: ' +
-          error.message +
-          '\n\nVerifique se o domínio atual está na lista de autorizados do Firebase Console.'
-      );
+      alert('Erro do Firebase: ' + error.message + '\n\nVerifique se o domínio atual está na lista de autorizados.');
       setIsSmsSending(false);
-
       if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.render().then((widgetId) => {
-            grecaptcha.reset(widgetId);
-          });
-        } catch (e) {}
+        try { window.recaptchaVerifier.render().then((widgetId) => grecaptcha.reset(widgetId)); } catch (e) {}
       }
     }
   };
@@ -689,25 +693,14 @@ export default function App() {
         formattedPhone,
         appVerifier
       );
-
       window.confirmationResult = confirmationResult;
       setIsSmsSending(false);
       setResendTimer(60);
     } catch (error) {
-      console.error('Erro Firebase SMS (Reenvio):', error);
-      alert(
-        'Erro do Firebase ao reenviar: ' +
-          error.message +
-          '\n\nVerifique se o domínio atual está na lista de autorizados do Firebase Console.'
-      );
+      alert('Erro do Firebase ao reenviar: ' + error.message);
       setIsSmsSending(false);
-
       if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.render().then((widgetId) => {
-            grecaptcha.reset(widgetId);
-          });
-        } catch (e) {}
+        try { window.recaptchaVerifier.render().then((widgetId) => grecaptcha.reset(widgetId)); } catch (e) {}
       }
     }
   };
@@ -719,9 +712,7 @@ export default function App() {
       startQuizAfterValidation();
     } catch (error) {
       playAudio('timeout');
-      alert(
-        'Código incorreto ou expirado. Verifique o SMS recebido e tente novamente.'
-      );
+      alert('Código incorreto ou expirado. Verifique o SMS recebido e tente novamente.');
     }
   };
 
@@ -733,21 +724,24 @@ export default function App() {
     setShuffledQuestions(randomized);
     setUserAnswers(Array(randomized.length).fill(null));
 
-    const payload = {
+    const payloadInicio = {
       ...userData,
       tipo: 'cadastro',
       pontuacao: 'Iniciou',
       totalPerguntas: QUESTIONS.length,
       dataHora: new Date().toLocaleString('pt-BR'),
     };
+    
+    // Dispara Email de Boas-Vindas
+    const payloadBoasVindas = {
+      ...userData,
+      tipo: 'boas_vindas',
+      dataHora: new Date().toLocaleString('pt-BR'),
+    };
 
     try {
-      await fetch(GOOGLE_WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      await fetch(GOOGLE_WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payloadInicio) });
+      await fetch(GOOGLE_WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payloadBoasVindas) });
     } catch (error) {}
 
     setIsSubmitting(false);
@@ -755,12 +749,63 @@ export default function App() {
     setTimeLeft(20);
     setIsTimeOut(false);
     setSelectedOption(null);
-    playAudio('start_quiz'); // Som animado/divertido ao entrar no Quiz
+    playAudio('start_quiz'); // Som animado ao entrar
   };
 
   const handleSelectOption = (index) => {
+    if (isAnswering) return;
     playAudio('click');
     setSelectedOption(index);
+  };
+
+  // Feedback Dinâmico ao Avançar
+  const triggerInstantFeedback = () => {
+    if (isAnswering) return;
+    setIsAnswering(true);
+    
+    const isCorrect = selectedOption === shuffledQuestions[currentQIndex].correct;
+    
+    // Toca som de acerto ou erro
+    if (isCorrect) playAudio('correct_ans');
+    else playAudio('wrong_ans');
+
+    // Pausa de 1,5 segundos para mostrar as cores verde/vermelho antes de trocar de questão
+    setTimeout(() => {
+      setIsAnswering(false);
+      
+      const newAnswers = [...userAnswers];
+      newAnswers[currentQIndex] = selectedOption;
+      setUserAnswers(newAnswers);
+
+      if (isCorrect) {
+        setScore((prev) => prev + 1);
+      }
+
+      if (currentQIndex < shuffledQuestions.length - 1) {
+        setCurrentQIndex((prev) => prev + 1);
+        setSelectedOption(null);
+        setTimeLeft(20);
+        setIsTimeOut(false);
+      } else {
+        processQuizFinish(newAnswers);
+      }
+    }, 1500);
+  };
+
+  const handleTimeOutNext = () => {
+    playAudio('click');
+    const newAnswers = [...userAnswers];
+    newAnswers[currentQIndex] = null;
+    setUserAnswers(newAnswers);
+
+    if (currentQIndex < shuffledQuestions.length - 1) {
+      setCurrentQIndex((prev) => prev + 1);
+      setSelectedOption(null);
+      setTimeLeft(20);
+      setIsTimeOut(false);
+    } else {
+      processQuizFinish(newAnswers);
+    }
   };
 
   const processQuizFinish = (finalAnswers) => {
@@ -770,7 +815,6 @@ export default function App() {
     );
     setScore(finalScore);
 
-    // Exibir Animação e Som com base na porcentagem
     const percentage = (finalScore / QUESTIONS.length) * 100;
     let feedbackType = '';
     let feedbackMessage = '';
@@ -791,43 +835,10 @@ export default function App() {
 
     setFeedbackOverlay({ type: feedbackType, message: feedbackMessage });
 
-    // Após 3 segundos, fecha o overlay e finaliza de fato
     setTimeout(() => {
       setFeedbackOverlay(null);
       finishQuizAction(finalScore, finalAnswers);
     }, 3000);
-  };
-
-  const nextQuestion = () => {
-    playAudio('confirm');
-    const newAnswers = [...userAnswers];
-    newAnswers[currentQIndex] = selectedOption;
-    setUserAnswers(newAnswers);
-
-    if (currentQIndex < shuffledQuestions.length - 1) {
-      setCurrentQIndex((prev) => prev + 1);
-      setSelectedOption(null);
-      setTimeLeft(20);
-      setIsTimeOut(false);
-    } else {
-      processQuizFinish(newAnswers);
-    }
-  };
-
-  const handleTimeOutNext = () => {
-    playAudio('click');
-    const newAnswers = [...userAnswers];
-    newAnswers[currentQIndex] = null;
-    setUserAnswers(newAnswers);
-
-    if (currentQIndex < shuffledQuestions.length - 1) {
-      setCurrentQIndex((prev) => prev + 1);
-      setSelectedOption(null);
-      setTimeLeft(20);
-      setIsTimeOut(false);
-    } else {
-      processQuizFinish(newAnswers);
-    }
   };
 
   const finishQuizAction = async (finalScore, finalAnswers) => {
@@ -846,7 +857,6 @@ export default function App() {
       await fetch(GOOGLE_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
     } catch (error) {
@@ -870,10 +880,7 @@ export default function App() {
         const userAnswerIndex = userAnswers[idx];
         return {
           pergunta: q.text,
-          suaResposta:
-            userAnswerIndex !== null
-              ? q.options[userAnswerIndex]
-              : 'Não respondida (Tempo esgotado)',
+          suaResposta: userAnswerIndex !== null ? q.options[userAnswerIndex] : 'Não respondida (Tempo esgotado)',
           respostaCorreta: q.options[q.correct],
           isCorrect: userAnswerIndex === q.correct,
           explicacao: q.explanation,
@@ -885,13 +892,12 @@ export default function App() {
       await fetch(GOOGLE_WEB_APP_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       setEmailSent(true);
       alert('Sucesso! O resumo completo foi enviado para o seu e-mail.');
     } catch (error) {
-      alert('Ocorreu um erro ao enviar o e-mail. Você pode baixar o PDF.');
+      alert('Ocorreu um erro ao enviar o e-mail. Pode fazer o download em PDF.');
     } finally {
       setIsSendingEmail(false);
     }
@@ -900,32 +906,20 @@ export default function App() {
   const explainWrongAnswer = async (qIndex) => {
     setIsAiLoading((prev) => ({ ...prev, [qIndex]: true }));
     const question = shuffledQuestions[qIndex];
-    const userAnswerStr =
-      userAnswers[qIndex] !== null
-        ? question.options[userAnswers[qIndex]]
-        : 'Nenhuma (tempo esgotado)';
-    const prompt = `O aluno respondeu à questão: "${
-      question.text
-    }". Ele escolheu: "${userAnswerStr}". A resposta correta era: "${
-      question.options[question.correct]
-    }". Explique o motivo do erro baseando-se na NR 20.`;
-
-    const explanation = await callGeminiAPI(prompt);
+    const userAnswerStr = userAnswers[qIndex] !== null ? question.options[userAnswers[qIndex]] : 'Nenhuma (tempo esgotado)';
     
-    const isError = explanation.toLowerCase().includes('erro');
+    const prompt = `O aluno errou a questão: "${question.text}". Ele respondeu: "${userAnswerStr}". A resposta correta era: "${question.options[question.correct]}". Como Eliot, IA da ETX Academy, explique de forma detalhada mas fácil de entender o porquê do erro, usando o conteúdo oficial da NR 20.`;
 
-    setAiExplanations((prev) => ({
-      ...prev,
-      [qIndex]: { text: explanation, isError: isError },
-    }));
+    const explanation = await callGeminiAPI(prompt, false);
     setIsAiLoading((prev) => ({ ...prev, [qIndex]: false }));
+    setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: explanation, isError: false } }));
   };
 
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou ${score} de ${shuffledQuestions.length} questões! Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto. Mesmo se ele tiver errado alguma questão também fale sobre isso conforme orientação.`;
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou ${score} de ${shuffledQuestions.length} questões! Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
     
-    const explanation = await callGeminiAPI(prompt);
+    const explanation = await callGeminiAPI(prompt, true);
     setTutorMsg(explanation);
     setIsTutorLoading(false);
   };
@@ -934,9 +928,11 @@ export default function App() {
     window.print();
   };
 
+  const shareText = `Acabei de tirar nota ${score} no Desafio Avaliativo de NR20 da ETX Academy! Duvido você bater minha nota. Faça o teste aqui: https://quiz-frentista-etx-academy.vercel.app`;
+  const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] flex flex-col relative print:bg-white print:text-black">
-      {/* Contêiner Invisível obrigatório do Firebase reCAPTCHA */}
+    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] relative print:bg-white print:text-black">
       <div id="recaptcha-container"></div>
 
       <style>
@@ -957,23 +953,14 @@ export default function App() {
             .no-print { display: none !important; }
             .page-break { page-break-before: always; }
             .print-container { max-width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: transparent !important; }
-            h1, h2, h3 { color: #0f172a !important; font-family: sans-serif; }
+            h1, h2, h3, h4 { color: #0f172a !important; font-family: sans-serif; }
             p, span, div { color: #334155 !important; }
-            .print-header { border-bottom: 2px solid #00FF00 !important; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+            .print-header { display: block !important; margin-bottom: 40px; }
             .print-banner { border: 4px solid #00FF00 !important; background: white !important; color: black !important; border-radius: 16px; padding: 30px; text-align: center; }
             .watermark-text {
-              position: fixed;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%) rotate(-45deg);
-              font-size: 110px;
-              font-weight: 900;
-              color: rgba(0, 255, 0, 0.08) !important;
-              white-space: nowrap;
-              z-index: -10;
-              pointer-events: none;
-              user-select: none;
-              font-family: Arial, sans-serif;
+              position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+              font-size: 110px; font-weight: 900; color: rgba(0, 255, 0, 0.08) !important;
+              z-index: -10; pointer-events: none;
             }
           }
         `}
@@ -1028,14 +1015,9 @@ export default function App() {
       </header>
 
       <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
-        <aside className="hidden lg:flex flex-col w-[300px] sticky top-8 no-print">
-          {/* O SEU SCRIPT DE PUBLICIDADE 300x600 ENTRA AQUI */}
-        </aside>
+        <aside className="hidden lg:flex flex-col w-[300px] sticky top-8 no-print"></aside>
 
         <div className="w-full max-w-3xl print-container flex flex-col gap-6">
-          <div className="lg:hidden w-full no-print">
-            {/* O SEU SCRIPT DE PUBLICIDADE MOBILE TOPO ENTRA AQUI */}
-          </div>
 
           {step === 'intro' && (
             <div
@@ -1281,13 +1263,15 @@ export default function App() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || isSmsSending || !aceitouTermos}
+                  disabled={isSubmitting || isSmsSending || !aceitouTermos || userData.whatsapp.replace(/\D/g, '').length !== 11}
                   className="w-full bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:from-[#00e600] hover:to-[#0099e6] text-[#020617] font-black py-5 px-6 rounded-2xl transition-all flex items-center justify-center gap-3 mt-8 disabled:opacity-50 disabled:cursor-not-allowed text-xl shadow-[0_0_20px_rgba(0,255,0,0.2)]"
                 >
                   {isSmsSending ? (
                     'Conectando ao Google SMS...'
                   ) : isSubmitting ? (
                     'Registrando...'
+                  ) : userData.whatsapp.length > 0 && userData.whatsapp.replace(/\D/g, '').length !== 11 ? (
+                    'Preencha o WhatsApp com 11 dígitos'
                   ) : (
                     <>
                       Iniciar Teste <ChevronRight className="w-6 h-6" />
@@ -1358,22 +1342,37 @@ export default function App() {
               <div className="space-y-4">
                 {shuffledQuestions[currentQIndex].options.map((opt, idx) => {
                   const isSelected = selectedOption === idx;
+                  const isCorrectAns = shuffledQuestions[currentQIndex].correct === idx;
+                  
+                  // Lógica de Feedback Instantâneo (Piscar Cores)
+                  let btnDynamicClasses = '';
+                  
+                  if (isAnswering) {
+                    if (isCorrectAns) {
+                      btnDynamicClasses = 'bg-[#00FF00]/80 border-[#00FF00] text-black shadow-[0_0_20px_#00FF00] animate-pulse';
+                    } else if (isSelected && !isCorrectAns) {
+                      btnDynamicClasses = 'bg-red-600/80 border-red-500 text-white shadow-[0_0_20px_red]';
+                    } else {
+                      btnDynamicClasses = 'opacity-30 border-slate-800 bg-[#020617] text-slate-500';
+                    }
+                  } else {
+                    btnDynamicClasses = isSelected
+                      ? 'bg-[#00AAFF]/10 border-[#00AAFF] shadow-[0_0_20px_rgba(0,170,255,0.2)] text-white'
+                      : 'hover:border-[#00AAFF]/50 hover:bg-[#00AAFF]/5 bg-[#020617] border-slate-800 text-slate-300';
+                  }
 
                   return (
                     <button
                       key={idx}
                       onClick={() => handleSelectOption(idx)}
-                      className={`w-full text-left p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group
-                        ${
-                          isSelected
-                            ? 'bg-[#00AAFF]/10 border-[#00AAFF] shadow-[0_0_20px_rgba(0,170,255,0.2)]'
-                            : 'hover:border-[#00AAFF]/50 hover:bg-[#00AAFF]/5 bg-[#020617] border-slate-800'
-                        }
-                      `}
+                      disabled={isAnswering}
+                      className={`w-full text-left p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group ${btnDynamicClasses}`}
                     >
                       <div
                         className={`w-8 h-8 shrink-0 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors
                           ${
+                            isAnswering && isCorrectAns ? 'border-black bg-black' :
+                            isAnswering && isSelected && !isCorrectAns ? 'border-white bg-white' :
                             isSelected
                               ? 'border-[#00AAFF] bg-[#00AAFF]'
                               : 'border-slate-600 group-hover:border-[#00AAFF]/50'
@@ -1381,15 +1380,15 @@ export default function App() {
                         `}
                       >
                         {isSelected && (
-                          <div className="w-3 h-3 bg-white rounded-full" />
+                          <div className={`w-3 h-3 rounded-full ${isAnswering && isCorrectAns ? 'bg-[#00FF00]' : isAnswering && !isCorrectAns ? 'bg-red-500' : 'bg-white'}`} />
                         )}
                       </div>
                       <span
                         className={`text-lg md:text-xl font-medium leading-snug
                         ${
-                          isSelected
-                            ? 'text-white font-bold'
-                            : 'text-slate-300'
+                          isSelected || (isAnswering && isCorrectAns)
+                            ? 'font-bold'
+                            : ''
                         }
                       `}
                       >
@@ -1402,18 +1401,20 @@ export default function App() {
 
               <div className="mt-10 flex justify-between items-center h-16">
                 <span className="text-slate-500 text-sm hidden md:flex items-center gap-2 font-medium">
-                  <span className="px-2 py-1 bg-slate-800 rounded text-xs font-mono">ENTER</span> para avançar
+                  <span className="px-2 py-1 bg-slate-800 rounded text-xs font-mono">ENTER</span> para confirmar
                 </span>
-                {selectedOption !== null && (
+                {selectedOption !== null && !isAnswering && (
                   <button
-                    onClick={nextQuestion}
+                    onClick={triggerInstantFeedback}
                     className="bg-[#00FF00] hover:bg-[#00e600] text-[#020617] flex items-center gap-3 py-4 px-10 rounded-xl font-black transition-all animate-in slide-in-from-right-8 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] hover:scale-105 ml-auto text-lg"
                   >
-                    {currentQIndex < shuffledQuestions.length - 1
-                      ? 'Avançar'
-                      : 'Finalizar Teste'}{' '}
-                    <ChevronRight className="w-6 h-6" />
+                    Avançar <ChevronRight className="w-6 h-6" />
                   </button>
+                )}
+                {isAnswering && (
+                  <div className="ml-auto flex items-center gap-2 text-[#00FF00] font-bold">
+                    Avaliando resposta...
+                  </div>
                 )}
               </div>
             </div>
@@ -1432,13 +1433,12 @@ export default function App() {
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-6 h-6" /> Prova concluída e
-                      registrada!
+                      <CheckCircle className="w-6 h-6" /> Prova concluída e registrada!
                     </>
                   )}
                 </div>
 
-                <div className="flex flex-col md:flex-row items-center justify-center gap-5 max-w-3xl mx-auto">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-5 max-w-4xl mx-auto">
                   <button
                     onClick={() => {
                       playAudio('click');
@@ -1446,8 +1446,18 @@ export default function App() {
                     }}
                     className="w-full md:w-auto bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:from-[#00e600] hover:to-[#0099e6] text-[#020617] font-black text-lg py-5 px-10 rounded-2xl shadow-[0_0_20px_rgba(0,255,0,0.3)] flex items-center justify-center gap-3 transform hover:scale-105 transition-all"
                   >
-                    <FileText className="w-6 h-6" /> Ver Resumo e Salvar PDF
+                    <FileText className="w-6 h-6" /> Ver Resumo e PDF
                   </button>
+
+                  <a
+                    href={whatsappShareUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => playAudio('click')}
+                    className="w-full md:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-lg py-5 px-10 rounded-2xl shadow-[0_0_20px_rgba(37,211,102,0.3)] flex items-center justify-center gap-3 transform hover:scale-105 transition-all no-underline"
+                  >
+                    <Share2 className="w-6 h-6" /> Desafie um Amigo!
+                  </a>
 
                   <button
                     onClick={requestDetailedEmail}
@@ -1465,7 +1475,7 @@ export default function App() {
                       ? 'Enviando...'
                       : emailSent
                       ? 'E-mail Enviado!'
-                      : 'Receber PDF por E-mail'}
+                      : 'Receber no E-mail'}
                   </button>
                 </div>
               </div>
@@ -1486,11 +1496,7 @@ export default function App() {
                 
                 <div className="bg-[#020617] p-8 rounded-3xl border border-slate-800 shadow-inner flex flex-col items-center text-center">
                   {tutorMsg ? (
-                    <div className={`text-base md:text-lg p-6 rounded-2xl border-l-4 text-left w-full shadow-md ${
-                      tutorMsg.toLowerCase().includes('erro google') || tutorMsg.toLowerCase().includes('não foi possível')
-                        ? 'bg-slate-800/80 border-slate-500 text-slate-300' 
-                        : 'bg-[#00AAFF]/10 border-[#00AAFF] text-[#00AAFF] leading-relaxed font-medium'
-                    }`}>
+                    <div className={`text-base md:text-lg p-6 rounded-2xl border-l-4 text-left w-full shadow-md bg-[#00AAFF]/10 border-[#00AAFF] text-[#00AAFF] leading-relaxed font-medium`}>
                       {tutorMsg}
                     </div>
                   ) : (
@@ -1513,9 +1519,9 @@ export default function App() {
                       <AlertCircle className="w-8 h-8 text-rose-500" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-white">Revisão IA de Erros</h3>
+                      <h3 className="text-2xl font-black text-white">Revisão de Erros</h3>
                       <p className="text-slate-400 font-medium">
-                        Descubra o motivo de cada erro.
+                        Descubra o motivo de cada erro com a IA.
                       </p>
                     </div>
                   </div>
@@ -1537,17 +1543,12 @@ export default function App() {
                           </p>
                           <p className="text-slate-400 mb-6">{q.text}</p>
 
-                          {aiData && !aiData.isError ? (
+                          {aiData ? (
                             <div className="bg-[#00AAFF]/10 border-l-4 border-[#00AAFF] p-5 text-base text-[#00AAFF] font-medium rounded-r-xl">
                               {aiData.text}
                             </div>
                           ) : (
                             <div className="flex flex-col items-start gap-4">
-                              {aiData?.isError && (
-                                <p className="text-rose-400 text-sm font-medium bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 w-full">
-                                  {aiData.text}
-                                </p>
-                              )}
                               <button
                                 onClick={() => explainWrongAnswer(idx)}
                                 disabled={isAiLoading[idx]}
@@ -1555,8 +1556,6 @@ export default function App() {
                               >
                                 {isAiLoading[idx]
                                   ? 'Pensando...'
-                                  : aiData?.isError
-                                  ? 'Tentar Novamente'
                                   : 'Explicar erro com IA'}{' '}
                                 <Sparkles className="w-4 h-4 text-[#00AAFF]" />
                               </button>
@@ -1590,9 +1589,10 @@ export default function App() {
                 </button>
               </div>
 
+              {/* TÍTULO CORRIGIDO NO RESUMO - CENTRALIZADO E COM CORES DA MARCA */}
               <div className="print-header hidden print:block text-center mb-10 pb-6 border-b-4 border-[#00FF00]">
-                <h1 className="text-5xl font-black uppercase text-[#020617] tracking-tighter">
-                  ETX Academy
+                <h1 className="text-5xl font-black uppercase tracking-tighter" style={{ color: '#0f172a' }}>
+                  ETX ACADEMY
                 </h1>
                 <p className="text-slate-500 font-bold tracking-widest uppercase text-xs mt-2">
                   Sorte é estar preparado quando a oportunidade vem!
@@ -1613,10 +1613,13 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="no-print text-center mb-12">
-                <h1 className="text-4xl font-black text-slate-900 mb-2">
+              <div className="no-print text-center mb-12 pb-8 border-b-2 border-slate-100">
+                 <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00AAFF] to-[#00FF00]">
+                    ETX ACADEMY
+                  </h1>
+                <h2 className="text-2xl font-black text-slate-900 mt-6 mb-2">
                   Seu Resumo Oficial
-                </h1>
+                </h2>
                 <p className="text-slate-500 font-medium text-lg">
                   Material de consulta didático elaborado pela ETX Academy.
                 </p>
@@ -1717,6 +1720,13 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* RODAPÉ */}
+      <footer className="no-print w-full py-6 bg-[#020617] border-t border-slate-800 text-center mt-auto">
+        <p className="text-slate-500 text-sm font-medium px-4">
+          ETX Academy - Ji-Paraná - RO - Contato/WhatsApp: (69) 9 8119-7373 - Todos os direitos reservados - 2026
+        </p>
+      </footer>
     </div>
   );
 }
