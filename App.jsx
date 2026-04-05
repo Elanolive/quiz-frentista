@@ -437,7 +437,7 @@ const callGeminiAPI = async (prompt, isTutorMsg = false) => {
           text: `Você é Eliot, a Inteligência Artificial biotecnológica da escola ETX Academy. Regras obrigatórias:
           1. Baseie toda explicação no conteúdo oficial da norma regulamentadora NR 20.
           2. EVITE citar a FISPQ, a menos que seja estritamente necessário. O foco principal deve ser a NR 20.
-          3. Se o assunto for gases, explique de forma MUITO SIMPLES: GLP (Gás Liquefeito de Petróleo) é o famoso "gás de cozinha", armazenado em estado líquido sob pressão. GNV (Gás Natural Veicular) é outro tipo de combustível que se mantém em estado gasoso sob altíssima pressão.
+          3. Se o assunto for gases, explique de forma MUITO SIMPLES: GLP (Gás Liquefeito de Petróleo) é o famoso "gás de cozinha", armazenado em estado líquido sob pressão. GNV (Gás Natural Veicular) é outro tipo de combustível que se mantém em estado gasoso sob altíssima pressão. Além disso, por curiosidade, existem outros combustíveis como o biometano, que também é um gás veicular.
           4. Seja amigável, direto e encorajador.`,
         },
       ],
@@ -463,7 +463,6 @@ const callGeminiAPI = async (prompt, isTutorMsg = false) => {
       
     } catch (err) {
       if (i === delays.length - 1) {
-        // Se todas as tentativas falharem, lançamos o erro para que a função principal use a solução infalível de fallback.
         throw new Error("API Indisponível");
       }
       await new Promise((res) => setTimeout(res, delays[i]));
@@ -499,7 +498,7 @@ export default function App() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [userAnswers, setUserAnswers] = useState([]);
   const [isTimeOut, setIsTimeOut] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(20);
+  const [timeLeft, setTimeLeft] = useState(30); // ALTERADO PARA 30 SEGUNDOS
   const [score, setScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -550,10 +549,7 @@ export default function App() {
   // Efeito do Tutor IA Automático e Balão Animado
   useEffect(() => {
     if (step === 'result') {
-      // 1. Gerar mensagem de feedback principal da IA
       generateTutorMessage();
-
-      // 2. Animação do Balão de Fala e Som de Digitação
       const fullIntro = "Oi, eu sou o Eliot, a inteligência Artificial biotecnológica da ETX Academy!";
       setIsTyping(true);
       setDisplayedIntro("");
@@ -575,7 +571,7 @@ export default function App() {
             typingAudioRef.current.currentTime = 0;
           }
         }
-      }, 40); // Velocidade da digitação rápida
+      }, 40);
 
       return () => {
         clearInterval(typingInterval);
@@ -586,7 +582,7 @@ export default function App() {
     }
   }, [step]);
 
-  // Efeito para o cronômetro de reenvio
+  // Inicializa o reCAPTCHA invisível
   useEffect(() => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
@@ -686,7 +682,6 @@ export default function App() {
     e.preventDefault();
     if (!aceitouTermos) return;
     
-    // Validação WhatsApp
     if (userData.whatsapp.replace(/\D/g, '').length !== 11) {
       alert("Por favor, digite um número de WhatsApp válido com 11 dígitos (DDD + 9 + Número).");
       return;
@@ -774,7 +769,6 @@ export default function App() {
       dataHora: new Date().toLocaleString('pt-BR'),
     };
     
-    // Dispara Email de Boas-Vindas
     const payloadBoasVindas = {
       ...userData,
       tipo: 'boas_vindas',
@@ -788,10 +782,10 @@ export default function App() {
 
     setIsSubmitting(false);
     setStep('quiz');
-    setTimeLeft(20);
+    setTimeLeft(30); // RESET PARA 30 SEGUNDOS
     setIsTimeOut(false);
     setSelectedOption(null);
-    playAudio('start_quiz'); // Som animado ao entrar
+    playAudio('start_quiz');
   };
 
   const handleSelectOption = (index) => {
@@ -800,18 +794,15 @@ export default function App() {
     setSelectedOption(index);
   };
 
-  // Feedback Dinâmico ao Avançar
   const triggerInstantFeedback = () => {
     if (isAnswering) return;
     setIsAnswering(true);
     
     const isCorrect = selectedOption === shuffledQuestions[currentQIndex].correct;
     
-    // Toca som de acerto ou erro
     if (isCorrect) playAudio('correct_ans');
     else playAudio('wrong_ans');
 
-    // Pausa de 1,5 segundos para mostrar as cores verde/vermelho antes de trocar de questão
     setTimeout(() => {
       setIsAnswering(false);
       
@@ -826,7 +817,7 @@ export default function App() {
       if (currentQIndex < shuffledQuestions.length - 1) {
         setCurrentQIndex((prev) => prev + 1);
         setSelectedOption(null);
-        setTimeLeft(20);
+        setTimeLeft(30); // RESET PARA 30 SEGUNDOS
         setIsTimeOut(false);
       } else {
         processQuizFinish(newAnswers);
@@ -843,7 +834,7 @@ export default function App() {
     if (currentQIndex < shuffledQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
-      setTimeLeft(20);
+      setTimeLeft(30); // RESET PARA 30 SEGUNDOS
       setIsTimeOut(false);
     } else {
       processQuizFinish(newAnswers);
@@ -957,7 +948,6 @@ export default function App() {
       const isError = explanation.toLowerCase().includes('erro api');
       setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: explanation, isError: isError } }));
     } catch (e) {
-      // SOLUÇÃO INFALÍVEL: Se a API falhar completamente (limites, rede), entrega a explicação local instantaneamente.
       const fallbackExplicacao = `A alternativa correta é: "${question.options[question.correct]}". ${question.explanation} (Dica do Eliot: Conforme a NR 20, seguir as medidas de segurança é vital para evitar acidentes com inflamáveis).`;
       setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: fallbackExplicacao, isError: false } }));
     } finally {
@@ -968,13 +958,12 @@ export default function App() {
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
     const perc = Math.round((score / shuffledQuestions.length) * 100);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador.`;
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
     
     try {
       const explanation = await callGeminiAPI(prompt, true);
       setTutorMsg(explanation);
     } catch(e) {
-      // FALLBACK INFALÍVEL DO TUTOR
       setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
     } finally {
       setIsTutorLoading(false);
@@ -985,8 +974,8 @@ export default function App() {
     window.print();
   };
 
-  const percentage = shuffledQuestions.length > 0 ? Math.round((score / shuffledQuestions.length) * 100) : 0;
-  const shareText = `Acabei de acertar ${percentage}% no Desafio de NR20 da ETX Academy! Duvido você bater minha nota. Faça o teste aqui: https://quiz-frentista-etx-academy.vercel.app`;
+  const percResult = Math.round((score / QUESTIONS.length) * 100);
+  const shareText = `Acabei de acertar ${percResult}% no Desafio Avaliativo de NR20 da ETX Academy! Duvido você bater minha nota. Faça o teste aqui: https://quiz-frentista-etx-academy.vercel.app`;
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
@@ -1402,7 +1391,6 @@ export default function App() {
                   const isSelected = selectedOption === idx;
                   const isCorrectAns = shuffledQuestions[currentQIndex].correct === idx;
                   
-                  // Lógica de Feedback Instantâneo (Piscar Cores)
                   let btnDynamicClasses = '';
                   
                   if (isAnswering) {
@@ -1491,7 +1479,7 @@ export default function App() {
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-6 h-6" /> Teste concluído!
+                      <CheckCircle className="w-6 h-6" /> Prova concluída!
                     </>
                   )}
                 </div>
@@ -1669,7 +1657,7 @@ export default function App() {
               <div className="no-print fixed bottom-6 right-6 md:top-6 md:bottom-auto flex gap-4 z-50">
                 <button
                   onClick={() => setStep('result')}
-                  className="bg-slate-900 text-white px-6 py-4 rounded-full font-black shadow-xl flex items-center gap-3 hover:bg-slate-800 transition-all"
+                  className="bg-slate-800 text-white px-6 py-4 rounded-full font-black shadow-xl flex items-center gap-3 hover:bg-slate-800 transition-all"
                 >
                   <ArrowLeft className="w-5 h-5" /> Voltar
                 </button>
@@ -1681,7 +1669,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* TÍTULO CORRIGIDO NO RESUMO - CENTRALIZADO E COM CORES DA MARCA */}
               <div className="print-header hidden print:block text-center mb-10 pb-6 border-b-4 border-[#00FF00]">
                 <h1 className="text-5xl font-black uppercase tracking-tighter" style={{ color: '#0f172a' }}>
                   ETX ACADEMY
@@ -1813,7 +1800,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* RODAPÉ */}
       <footer className="no-print w-full py-6 bg-[#020617] border-t border-slate-800 text-center mt-auto">
         <p className="text-slate-500 text-sm font-medium px-4">
           ETX Academy - Ji-Paraná - RO - Contato/WhatsApp: (69) 9 8119-7373 - Todos os direitos reservados - 2026
