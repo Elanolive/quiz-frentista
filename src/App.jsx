@@ -519,16 +519,35 @@ export default function App() {
   // Estado para Animação Flutuante
   const [feedbackOverlay, setFeedbackOverlay] = useState(null);
 
-  const introCardRef = useRef(null);
-
-  const handleMouseMove = (e) => {
-    if (!introCardRef.current) return;
-    const rect = introCardRef.current.getBoundingClientRect();
+  // --- Função para o Efeito Visual Interativo (Mouse Move/Tilt + Spotlight) ---
+  const handleMouseMoveCard = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    introCardRef.current.style.setProperty('--mouse-x', `${x}px`);
-    introCardRef.current.style.setProperty('--mouse-y', `${y}px`);
+    
+    // Spotlight
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+    
+    // 3D Tilt super leve
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * -2; 
+    const rotateY = ((x - centerX) / centerX) * 2;
+    card.style.setProperty('--rotate-x', `${rotateX}deg`);
+    card.style.setProperty('--rotate-y', `${rotateY}deg`);
   };
+
+  const handleMouseLeaveCard = (e) => {
+    const card = e.currentTarget;
+    card.style.setProperty('--rotate-x', `0deg`);
+    card.style.setProperty('--rotate-y', `0deg`);
+  };
+
+  // --- Função para calcular a Data Atual (Bloqueio Calendário) ---
+  const todayData = new Date();
+  const maxDateString = `${todayData.getFullYear()}-${String(todayData.getMonth() + 1).padStart(2, '0')}-${String(todayData.getDate()).padStart(2, '0')}`;
 
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
@@ -949,7 +968,6 @@ export default function App() {
       const isError = explanation.toLowerCase().includes('erro api');
       setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: explanation, isError: isError } }));
     } catch (e) {
-      // SOLUÇÃO INFALÍVEL: Se a API falhar completamente (limites, rede), entrega a explicação local instantaneamente.
       const fallbackExplicacao = `A alternativa correta é: "${question.options[question.correct]}". ${question.explanation} (Dica do Eliot: Conforme a NR 20, seguir as medidas de segurança é vital para evitar acidentes com inflamáveis).`;
       setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: fallbackExplicacao, isError: false } }));
     } finally {
@@ -966,7 +984,6 @@ export default function App() {
       const explanation = await callGeminiAPI(prompt, true);
       setTutorMsg(explanation);
     } catch(e) {
-      // FALLBACK INFALÍVEL DO TUTOR
       setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
     } finally {
       setIsTutorLoading(false);
@@ -1076,15 +1093,16 @@ export default function App() {
 
           {step === 'intro' && (
             <div
-              ref={introCardRef}
-              onMouseMove={handleMouseMove}
+              onMouseMove={handleMouseMoveCard}
+              onMouseLeave={handleMouseLeaveCard}
+              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
               className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl text-center animate-in fade-in zoom-in relative overflow-hidden group"
             >
               <div
                 className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
                 style={{
                   background:
-                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 255, 0, 0.1), transparent 40%)',
+                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
                 }}
               />
 
@@ -1121,7 +1139,19 @@ export default function App() {
           )}
 
           {step === 'form' && (
-            <div className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden">
+            <div 
+              onMouseMove={handleMouseMoveCard}
+              onMouseLeave={handleMouseLeaveCard}
+              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
+              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden group"
+            >
+              <div
+                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
+                style={{
+                  background:
+                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
+                }}
+              />
               {showVerification && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#020617]/95 backdrop-blur-md animate-in fade-in zoom-in-95">
                   <div className="bg-slate-900 p-10 rounded-3xl border-2 border-[#00AAFF]/50 shadow-[0_0_60px_rgba(0,170,255,0.2)] max-w-sm w-full text-center m-4 relative overflow-hidden">
@@ -1171,7 +1201,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setShowVerification(false)}
-                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all relative z-10"
                       >
                         Voltar
                       </button>
@@ -1179,7 +1209,7 @@ export default function App() {
                         type="button"
                         onClick={verifyCode}
                         disabled={inputCode.length !== 6}
-                        className="flex-1 bg-[#00AAFF] hover:bg-[#0088cc] text-[#020617] font-black py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,170,255,0.4)]"
+                        className="flex-1 bg-[#00AAFF] hover:bg-[#0088cc] text-[#020617] font-black py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,170,255,0.4)] relative z-10"
                       >
                         Validar
                       </button>
@@ -1188,10 +1218,10 @@ export default function App() {
                 </div>
               )}
 
-              <h2 className="text-3xl font-black mb-8 text-center border-b border-slate-800 pb-6 text-white">
+              <h2 className="text-3xl font-black mb-8 text-center border-b border-slate-800 pb-6 text-white relative z-10">
                 Credenciais de Acesso
               </h2>
-              <form onSubmit={handleFormSubmit} className="space-y-6">
+              <form onSubmit={handleFormSubmit} className="space-y-6 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-300 flex items-center gap-2">
@@ -1245,6 +1275,8 @@ export default function App() {
                       value={userData.nascimento}
                       onChange={handleInputChange}
                       type="date"
+                      min="1900-01-01"
+                      max={maxDateString}
                       className="w-full bg-[#020617] border border-slate-700 rounded-xl p-4 text-white focus:border-[#00AAFF] focus:ring-1 focus:ring-[#00AAFF] outline-none transition-all [color-scheme:dark]"
                     />
                   </div>
@@ -1255,7 +1287,7 @@ export default function App() {
                     Já fez o curso de Frentista anteriormente?
                   </label>
                   <div className="flex gap-6">
-                    <label className="flex items-center gap-3 cursor-pointer group">
+                    <label className="flex items-center gap-3 cursor-pointer group/radio">
                       <input
                         type="radio"
                         name="fezCurso"
@@ -1264,9 +1296,9 @@ export default function App() {
                         className="w-5 h-5 text-[#00FF00] bg-[#020617] border-slate-600 focus:ring-[#00FF00]"
                         required
                       />
-                      <span className="font-medium text-slate-300 group-hover:text-white transition-colors">Sim</span>
+                      <span className="font-medium text-slate-300 group-hover/radio:text-white transition-colors">Sim</span>
                     </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
+                    <label className="flex items-center gap-3 cursor-pointer group/radio">
                       <input
                         type="radio"
                         name="fezCurso"
@@ -1275,7 +1307,7 @@ export default function App() {
                         className="w-5 h-5 text-[#00FF00] bg-[#020617] border-slate-600 focus:ring-[#00FF00]"
                         required
                       />
-                      <span className="font-medium text-slate-300 group-hover:text-white transition-colors">Não</span>
+                      <span className="font-medium text-slate-300 group-hover/radio:text-white transition-colors">Não</span>
                     </label>
                   </div>
                   {userData.fezCurso === 'Sim' && (
@@ -1338,10 +1370,22 @@ export default function App() {
           )}
 
           {step === 'quiz' && (
-            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative">
+            <div 
+              onMouseMove={handleMouseMoveCard}
+              onMouseLeave={handleMouseLeaveCard}
+              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
+              className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden group"
+            >
+              <div
+                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
+                style={{
+                  background:
+                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
+                }}
+              />
               {isTimeOut && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
-                  <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500">
+                  <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500 relative z-50">
                     <AlertCircle className="w-24 h-24 text-red-500 mb-6 animate-bounce" />
                     <h3 className="text-4xl font-black text-white mb-4">
                       Tempo Esgotado!
@@ -1373,7 +1417,7 @@ export default function App() {
                 ></div>
               </div>
 
-              <div className="flex justify-between items-end mb-10 mt-6 border-b border-slate-800 pb-6">
+              <div className="flex justify-between items-end mb-10 mt-6 border-b border-slate-800 pb-6 relative z-10">
                 <div className="pr-4">
                   <span className="text-[#00AAFF] font-black tracking-[0.2em] text-xs uppercase mb-3 block">
                     Questão {currentQIndex + 1} de {shuffledQuestions.length}
@@ -1394,7 +1438,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 relative z-10">
                 {shuffledQuestions[currentQIndex].options.map((opt, idx) => {
                   const isSelected = selectedOption === idx;
                   const isCorrectAns = shuffledQuestions[currentQIndex].correct === idx;
@@ -1406,17 +1450,15 @@ export default function App() {
                        if (isCorrectAns) {
                          btnDynamicClasses = 'bg-[#00FF00]/80 border-[#00FF00] text-black shadow-[0_0_20px_#00FF00] animate-pulse';
                        } else {
-                         // Oculta a correta e mostra só a errada a vermelho
                          btnDynamicClasses = 'bg-red-600/80 border-red-500 text-white shadow-[0_0_20px_red]';
                        }
                     } else {
-                       // Oculta as outras para não dar a dica da correta
                        btnDynamicClasses = 'opacity-30 border-slate-800 bg-[#020617] text-slate-500';
                     }
                   } else {
                     btnDynamicClasses = isSelected
                       ? 'bg-[#00AAFF]/10 border-[#00AAFF] shadow-[0_0_20px_rgba(0,170,255,0.2)] text-white'
-                      : 'hover:border-[#00AAFF]/50 hover:bg-[#00AAFF]/5 bg-[#020617] border-slate-800 text-slate-300';
+                      : 'hover:border-[#00AAFF]/50 hover:bg-[#00AAFF]/5 hover:shadow-[0_0_15px_rgba(0,170,255,0.3)] bg-[#020617] border-slate-800 text-slate-300';
                   }
 
                   return (
@@ -1424,7 +1466,7 @@ export default function App() {
                       key={idx}
                       onClick={() => handleSelectOption(idx)}
                       disabled={isAnswering}
-                      className={`w-full text-left p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group ${btnDynamicClasses}`}
+                      className={`w-full text-left p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group/btn ${btnDynamicClasses}`}
                     >
                       <div
                         className={`w-8 h-8 shrink-0 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors
@@ -1432,7 +1474,7 @@ export default function App() {
                             isAnswering && isSelected ? (isCorrectAns ? 'border-black bg-black' : 'border-white bg-white') :
                             isSelected
                               ? 'border-[#00AAFF] bg-[#00AAFF]'
-                              : 'border-slate-600 group-hover:border-[#00AAFF]/50'
+                              : 'border-slate-600 group-hover/btn:border-[#00AAFF]/50'
                           }
                         `}
                       >
@@ -1456,7 +1498,7 @@ export default function App() {
                 })}
               </div>
 
-              <div className="mt-10 flex justify-between items-center h-16">
+              <div className="mt-10 flex justify-between items-center h-16 relative z-10">
                 <span className="text-slate-500 text-sm hidden md:flex items-center gap-2 font-medium">
                   <span className="px-2 py-1 bg-slate-800 rounded text-xs font-mono">ENTER</span> para confirmar
                 </span>
@@ -1478,8 +1520,20 @@ export default function App() {
           )}
 
           {step === 'result' && (
-            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in">
-              <div className="text-center mb-10 border-b border-slate-800 pb-10">
+            <div 
+              onMouseMove={handleMouseMoveCard}
+              onMouseLeave={handleMouseLeaveCard}
+              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
+              className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
+            >
+              <div
+                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
+                style={{
+                  background:
+                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
+                }}
+              />
+              <div className="text-center mb-10 border-b border-slate-800 pb-10 relative z-10">
                 <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
                   Seu Resultado: <span className="text-[#00FF00]">{score}</span> de {shuffledQuestions.length}
                 </h2>
@@ -1538,7 +1592,7 @@ export default function App() {
               </div>
 
               {/* TUTOR IA DA ETX */}
-              <div className="mb-10">
+              <div className="mb-10 relative z-10">
                 <div className="flex items-center gap-4 mb-6 bg-[#00FF00]/10 p-5 rounded-2xl border border-[#00FF00]/20">
                   <div className="w-14 h-14 bg-[#00FF00]/20 rounded-full flex items-center justify-center shrink-0">
                     <Bot className="w-8 h-8 text-[#00FF00]" />
@@ -1579,7 +1633,7 @@ export default function App() {
 
               {/* REVISÃO DE ERROS */}
               {score < shuffledQuestions.length && (
-                <div className="mb-8">
+                <div className="mb-8 relative z-10">
                   <div className="flex items-center gap-4 mb-6 bg-rose-500/10 p-5 rounded-2xl border border-rose-500/20">
                     <div className="w-14 h-14 bg-rose-500/20 rounded-full flex items-center justify-center shrink-0">
                       <AlertCircle className="w-8 h-8 text-rose-500" />
@@ -1635,7 +1689,7 @@ export default function App() {
               )}
 
               {/* BANNER PROMOCIONAL NA TELA DE RESULTADOS */}
-              <div className="mt-12 bg-[#020617] text-white p-8 md:p-12 rounded-[2.5rem] text-center border-4 border-[#00FF00] shadow-[0_0_40px_rgba(0,255,0,0.15)] relative overflow-hidden">
+              <div className="mt-12 bg-[#020617] text-white p-8 md:p-12 rounded-[2.5rem] text-center border-4 border-[#00FF00] shadow-[0_0_40px_rgba(0,255,0,0.15)] relative overflow-hidden z-10">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
                   <Fuel className="w-40 h-40 text-[#00FF00]" />
                 </div>
