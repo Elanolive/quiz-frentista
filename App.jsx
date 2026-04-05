@@ -44,12 +44,16 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 auth.useDeviceLanguage();
 
-// Efeitos Sonoros
+// Efeitos Sonoros Atualizados (Com Sons Divertidos e Dinâmicos)
 const SOUNDS = {
   click: 'https://actions.google.com/sounds/v1/ui/button_click.ogg',
   confirm: 'https://actions.google.com/sounds/v1/ui/pop_up_open.ogg',
   timeout: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
   success: 'https://actions.google.com/sounds/v1/cartoon/magic_chime_bell.ogg',
+  start_quiz: 'https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg',
+  win_high: 'https://actions.google.com/sounds/v1/cartoon/trombone_magic_flourish.ogg',
+  win_mid: 'https://actions.google.com/sounds/v1/cartoon/drum_roll.ogg',
+  fail: 'https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_bump.ogg'
 };
 
 const playAudio = (type) => {
@@ -216,7 +220,7 @@ const QUESTIONS = [
     id: 13,
     text: 'Qual é a função principal do Plano de Resposta a Emergências exigido pela NR 20?',
     options: [
-      'a) Aumentar a produtividade do posto de combustíveis.',
+      'a) Aumentar a productivity do posto de combustíveis.',
       'b) Registrar o número de funcionários treinados.',
       'c) Determinar procedimentos e ações a serem adotadas em caso de acidente.',
       'd) Controlar o estoque de combustíveis e lubrificantes.',
@@ -418,7 +422,7 @@ const QUESTIONS = [
   },
 ];
 
-// --- FUNÇÃO INTEGRAÇÃO GEMINI API (MUITO MELHORADA PARA EVITAR ERROS) ---
+// --- FUNÇÃO INTEGRAÇÃO GEMINI API ---
 const callGeminiAPI = async (prompt) => {
   const apiKey = 'AIzaSyBUQUCeNuWCYXvpZRgtgEpbkNkflIExKsI';
 
@@ -456,7 +460,6 @@ const callGeminiAPI = async (prompt) => {
       );
     } catch (err) {
       if (i === delays.length - 1) {
-        // FALLBACK ELEGANTE: Se a IA falhar (por CORS, lentidão ou limite da Google), retornamos uma mensagem amigável sem a palavra "erro"
         if (prompt.includes("Tutor IA")) {
           return "Parabéns por concluir o Desafio NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se dedicando.";
         }
@@ -505,9 +508,12 @@ export default function App() {
   const [aiExplanations, setAiExplanations] = useState({});
   const [isAiLoading, setIsAiLoading] = useState({});
 
-  // Estados para o Tutor IA (Substituiu o perfectScoreMsg para funcionar com todos)
+  // Estados para o Tutor IA 
   const [tutorMsg, setTutorMsg] = useState(null);
   const [isTutorLoading, setIsTutorLoading] = useState(false);
+
+  // NOVO: Estado para a mensagem flutuante de Feedback animado
+  const [feedbackOverlay, setFeedbackOverlay] = useState(null);
 
   const introCardRef = useRef(null);
 
@@ -596,14 +602,14 @@ export default function App() {
   // Timer
   useEffect(() => {
     let timer;
-    if (step === 'quiz' && !isTimeOut && timeLeft > 0) {
+    if (step === 'quiz' && !isTimeOut && timeLeft > 0 && !feedbackOverlay) {
       timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
-    } else if (timeLeft === 0 && step === 'quiz' && !isTimeOut) {
+    } else if (timeLeft === 0 && step === 'quiz' && !isTimeOut && !feedbackOverlay) {
       playAudio('timeout');
       setIsTimeOut(true);
     }
     return () => clearTimeout(timer);
-  }, [timeLeft, step, isTimeOut]);
+  }, [timeLeft, step, isTimeOut, feedbackOverlay]);
 
   // Capturar tecla ENTER
   useEffect(() => {
@@ -612,7 +618,8 @@ export default function App() {
         e.key === 'Enter' &&
         step === 'quiz' &&
         selectedOption !== null &&
-        !isTimeOut
+        !isTimeOut &&
+        !feedbackOverlay
       ) {
         e.preventDefault();
         nextQuestion();
@@ -620,14 +627,13 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, selectedOption, currentQIndex, isTimeOut]);
+  }, [step, selectedOption, currentQIndex, isTimeOut, feedbackOverlay]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ENVIAR SMS REAL VIA FIREBASE
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!aceitouTermos) return;
@@ -648,7 +654,7 @@ export default function App() {
       window.confirmationResult = confirmationResult;
       setIsSmsSending(false);
       setShowVerification(true);
-      setResendTimer(60); // Inicia o contador de reenvio
+      setResendTimer(60); 
     } catch (error) {
       console.error('Erro Firebase SMS:', error);
       alert(
@@ -668,7 +674,6 @@ export default function App() {
     }
   };
 
-  // Função para reenvio de SMS
   const handleResendSms = async () => {
     if (resendTimer > 0) return;
     playAudio('click');
@@ -707,7 +712,6 @@ export default function App() {
     }
   };
 
-  // VALIDAÇÃO DO CÓDIGO SMS COM FIREBASE
   const verifyCode = async () => {
     try {
       await window.confirmationResult.confirm(inputCode);
@@ -751,11 +755,47 @@ export default function App() {
     setTimeLeft(20);
     setIsTimeOut(false);
     setSelectedOption(null);
+    playAudio('start_quiz'); // Som animado/divertido ao entrar no Quiz
   };
 
   const handleSelectOption = (index) => {
     playAudio('click');
     setSelectedOption(index);
+  };
+
+  const processQuizFinish = (finalAnswers) => {
+    const finalScore = finalAnswers.reduce(
+      (acc, ans, idx) => acc + (ans === shuffledQuestions[idx].correct ? 1 : 0),
+      0
+    );
+    setScore(finalScore);
+
+    // Exibir Animação e Som com base na porcentagem
+    const percentage = (finalScore / QUESTIONS.length) * 100;
+    let feedbackType = '';
+    let feedbackMessage = '';
+
+    if (percentage >= 80) {
+      feedbackType = 'high';
+      feedbackMessage = 'Excelente pontuação!';
+      playAudio('win_high');
+    } else if (percentage >= 60) {
+      feedbackType = 'mid';
+      feedbackMessage = 'Boa pontuação!';
+      playAudio('win_mid');
+    } else {
+      feedbackType = 'low';
+      feedbackMessage = 'Não foi dessa vez!';
+      playAudio('fail');
+    }
+
+    setFeedbackOverlay({ type: feedbackType, message: feedbackMessage });
+
+    // Após 3 segundos, fecha o overlay e finaliza de fato
+    setTimeout(() => {
+      setFeedbackOverlay(null);
+      finishQuizAction(finalScore, finalAnswers);
+    }, 3000);
   };
 
   const nextQuestion = () => {
@@ -764,17 +804,13 @@ export default function App() {
     newAnswers[currentQIndex] = selectedOption;
     setUserAnswers(newAnswers);
 
-    if (selectedOption === shuffledQuestions[currentQIndex].correct) {
-      setScore((prev) => prev + 1);
-    }
-
     if (currentQIndex < shuffledQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
       setTimeLeft(20);
       setIsTimeOut(false);
     } else {
-      finishQuiz(newAnswers);
+      processQuizFinish(newAnswers);
     }
   };
 
@@ -790,20 +826,13 @@ export default function App() {
       setTimeLeft(20);
       setIsTimeOut(false);
     } else {
-      finishQuiz(newAnswers);
+      processQuizFinish(newAnswers);
     }
   };
 
-  const finishQuiz = async (finalAnswers = userAnswers) => {
-    playAudio('success');
+  const finishQuizAction = async (finalScore, finalAnswers) => {
     setStep('result');
     setIsSubmitting(true);
-
-    const finalScore = finalAnswers.reduce(
-      (acc, ans, idx) => acc + (ans === shuffledQuestions[idx].correct ? 1 : 0),
-      0
-    );
-    setScore(finalScore);
 
     const payload = {
       ...userData,
@@ -883,7 +912,6 @@ export default function App() {
 
     const explanation = await callGeminiAPI(prompt);
     
-    // Como implementamos o fallback limpo (que não usa a palavra 'erro'), a box vermelha só aparece se o texto contiver a palavra erro, o que agora é evitado pelo nosso fallback.
     const isError = explanation.toLowerCase().includes('erro');
 
     setAiExplanations((prev) => ({
@@ -893,7 +921,6 @@ export default function App() {
     setIsAiLoading((prev) => ({ ...prev, [qIndex]: false }));
   };
 
-  // NOVO: Gerar mensagem do Tutor IA para todos
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
     const prompt = `O aluno acabou de concluir o Desafio da NR 20 e acertou ${score} de ${shuffledQuestions.length} questões! Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador e direto. Mesmo se ele tiver errado alguma questão também fale sobre isso conforme orientação.`;
@@ -908,12 +935,23 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white flex flex-col relative print:bg-white print:text-black">
+    <div className="min-h-screen bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] flex flex-col relative print:bg-white print:text-black">
       {/* Contêiner Invisível obrigatório do Firebase reCAPTCHA */}
       <div id="recaptcha-container"></div>
 
       <style>
         {`
+          @keyframes floatUp {
+            0% { transform: translateY(110vh) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translateY(-20vh) rotate(360deg) scale(1.5); opacity: 0; }
+          }
+          .confetti-piece {
+            position: fixed;
+            animation: floatUp 3s ease-out forwards;
+            z-index: 100;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(0,255,0,0.5);
+          }
           @media print {
             body { background: white !important; color: black !important; }
             .no-print { display: none !important; }
@@ -921,8 +959,8 @@ export default function App() {
             .print-container { max-width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: transparent !important; }
             h1, h2, h3 { color: #0f172a !important; font-family: sans-serif; }
             p, span, div { color: #334155 !important; }
-            .print-header { border-bottom: 2px solid #10b981 !important; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
-            .print-banner { border: 4px solid #10b981 !important; background: white !important; color: black !important; border-radius: 16px; padding: 30px; text-align: center; }
+            .print-header { border-bottom: 2px solid #00FF00 !important; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+            .print-banner { border: 4px solid #00FF00 !important; background: white !important; color: black !important; border-radius: 16px; padding: 30px; text-align: center; }
             .watermark-text {
               position: fixed;
               top: 50%;
@@ -930,7 +968,7 @@ export default function App() {
               transform: translate(-50%, -50%) rotate(-45deg);
               font-size: 110px;
               font-weight: 900;
-              color: rgba(16, 185, 129, 0.08) !important;
+              color: rgba(0, 255, 0, 0.08) !important;
               white-space: nowrap;
               z-index: -10;
               pointer-events: none;
@@ -941,28 +979,60 @@ export default function App() {
         `}
       </style>
 
-      <header className="no-print w-full p-6 bg-slate-950 border-b border-teal-900/50 shadow-lg flex justify-center items-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/80 to-slate-950"></div>
+      {/* OVERLAY DE FEEDBACK ANIMADO E SUSPENSO (VIBRANTE) */}
+      {feedbackOverlay && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300 pointer-events-none">
+          <div className={`p-10 rounded-3xl border-4 flex flex-col items-center text-center mx-4 animate-in zoom-in duration-500 transform scale-110 shadow-[0_0_80px_rgba(0,0,0,0.6)] ${
+            feedbackOverlay.type === 'high' ? 'bg-[#00FF00]/10 border-[#00FF00] shadow-[0_0_100px_rgba(0,255,0,0.3)]' :
+            feedbackOverlay.type === 'mid' ? 'bg-[#00AAFF]/10 border-[#00AAFF] shadow-[0_0_100px_rgba(0,170,255,0.3)]' :
+            'bg-red-500/10 border-red-500 shadow-[0_0_100px_rgba(239,68,68,0.3)]'
+          }`}>
+             {feedbackOverlay.type === 'high' && <span className="text-7xl mb-6 animate-bounce">🎉🎆</span>}
+             {feedbackOverlay.type === 'mid' && <span className="text-7xl mb-6 animate-pulse">👍✨</span>}
+             {feedbackOverlay.type === 'low' && <span className="text-7xl mb-6 animate-ping">😅❌</span>}
+             <h2 className={`text-4xl md:text-5xl font-black uppercase tracking-tight ${
+               feedbackOverlay.type === 'high' ? 'text-[#00FF00]' :
+               feedbackOverlay.type === 'mid' ? 'text-[#00AAFF]' :
+               'text-red-500'
+             }`}>
+               {feedbackOverlay.message}
+             </h2>
+          </div>
+          
+          {feedbackOverlay.type === 'high' && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(35)].map((_, i) => (
+                <span key={i} className="confetti-piece" style={{
+                  left: `${Math.random() * 100}vw`,
+                  animationDelay: `${Math.random() * 0.5}s`,
+                  fontSize: `${Math.random() * 2 + 1}rem`
+                }}>
+                  {['🎉', '🎊', '🎆', '✨', '🏆'][Math.floor(Math.random() * 5)]}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <header className="no-print w-full p-6 bg-[#020617] border-b border-slate-800 shadow-lg flex justify-center items-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300">
+          <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00FF00] to-[#00AAFF]">
             ETX <span className="text-slate-100">ACADEMY</span>
           </h1>
-          <p className="text-amber-400 text-sm font-medium mt-1 uppercase tracking-widest">
+          <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
           </p>
         </div>
       </header>
 
-      {/* LAYOUT RESPONSIVO COM ANÚNCIOS INVISÍVEIS QUANDO VAZIOS */}
       <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
-        {/* ANÚNCIO DESKTOP - ESQUERDA */}
         <aside className="hidden lg:flex flex-col w-[300px] sticky top-8 no-print">
           {/* O SEU SCRIPT DE PUBLICIDADE 300x600 ENTRA AQUI */}
         </aside>
 
-        {/* CONTAINER CENTRAL DA APLICAÇÃO */}
         <div className="w-full max-w-3xl print-container flex flex-col gap-6">
-          {/* ANÚNCIO MOBILE - TOPO (Apenas em telas pequenas) */}
           <div className="lg:hidden w-full no-print">
             {/* O SEU SCRIPT DE PUBLICIDADE MOBILE TOPO ENTRA AQUI */}
           </div>
@@ -971,31 +1041,31 @@ export default function App() {
             <div
               ref={introCardRef}
               onMouseMove={handleMouseMove}
-              className="no-print bg-slate-800/50 backdrop-blur-md p-8 md:p-12 rounded-2xl border border-slate-700 shadow-2xl text-center animate-in fade-in zoom-in relative overflow-hidden group"
+              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl text-center animate-in fade-in zoom-in relative overflow-hidden group"
             >
               <div
-                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition duration-300 group-hover:opacity-100"
+                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
                 style={{
                   background:
-                    'radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(20, 184, 166, 0.15), transparent 40%)',
+                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 255, 0, 0.1), transparent 40%)',
                 }}
               />
 
-              <div className="w-24 h-24 bg-teal-500/10 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10 transition-transform duration-300 group-hover:scale-110">
-                <School className="w-12 h-12 text-teal-400" />
-                <Sparkles className="w-6 h-6 text-amber-400 absolute -top-2 -right-2 animate-pulse" />
+              <div className="w-28 h-28 bg-[#00FF00]/10 rounded-full flex items-center justify-center mx-auto mb-8 relative z-10 transition-transform duration-300 group-hover:scale-110 shadow-[0_0_30px_rgba(0,255,0,0.15)]">
+                <School className="w-14 h-14 text-[#00FF00]" />
+                <Sparkles className="w-8 h-8 text-[#00AAFF] absolute -top-2 -right-2 animate-pulse" />
               </div>
-              <h2 className="text-3xl font-bold mb-4 relative z-10">
+              <h2 className="text-4xl font-black mb-6 relative z-10 text-white tracking-tight">
                 Desafio Avaliativo NR 20
               </h2>
 
-              <p className="text-slate-300 mb-8 max-w-lg mx-auto text-lg leading-relaxed relative z-10">
-                <strong className="text-teal-400 text-xl block mb-2">
+              <p className="text-slate-300 mb-10 max-w-lg mx-auto text-lg leading-relaxed relative z-10 font-medium">
+                <strong className="text-[#00FF00] text-2xl block mb-3 font-black">
                   Teste os seus conhecimentos sobre inflamáveis e segurança
                   (NR20 para Frentistas).
                 </strong>
                 Ao final, terá uma revisão guiada pela nossa{' '}
-                <span className="text-amber-400 font-bold">
+                <span className="text-[#00AAFF] font-bold">
                   Inteligência Artificial
                 </span>
                 .
@@ -1006,27 +1076,27 @@ export default function App() {
                   playAudio('click');
                   setStep('form');
                 }}
-                className="bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white font-bold py-4 px-10 rounded-full transition-all transform hover:scale-105 flex items-center justify-center mx-auto gap-2 relative z-10 shadow-[0_0_20px_rgba(20,184,166,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)]"
+                className="bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:from-[#00e600] hover:to-[#0099e6] text-[#020617] font-black text-xl py-5 px-12 rounded-full transition-all transform hover:scale-105 flex items-center justify-center mx-auto gap-3 relative z-10 shadow-[0_0_20px_rgba(0,255,0,0.4)] hover:shadow-[0_0_40px_rgba(0,170,255,0.6)]"
               >
-                Começar o Desafio <Play className="w-5 h-5" />
+                Começar o Desafio <Play className="w-6 h-6 fill-current" />
               </button>
             </div>
           )}
 
           {step === 'form' && (
-            <div className="no-print bg-slate-800/50 backdrop-blur-md p-8 md:p-12 rounded-2xl border border-slate-700 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden">
+            <div className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden">
               {showVerification && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm animate-in fade-in zoom-in-95">
-                  <div className="bg-slate-800 p-8 rounded-2xl border-2 border-teal-500/50 shadow-[0_0_50px_rgba(20,184,166,0.2)] max-w-sm w-full text-center m-4 relative overflow-hidden">
-                    <div className="w-16 h-16 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <MessageSquare className="w-8 h-8 text-teal-400" />
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#020617]/95 backdrop-blur-md animate-in fade-in zoom-in-95">
+                  <div className="bg-slate-900 p-10 rounded-3xl border-2 border-[#00AAFF]/50 shadow-[0_0_60px_rgba(0,170,255,0.2)] max-w-sm w-full text-center m-4 relative overflow-hidden">
+                    <div className="w-20 h-20 bg-[#00AAFF]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <MessageSquare className="w-10 h-10 text-[#00AAFF]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">
+                    <h3 className="text-2xl font-black text-white mb-3">
                       Código de Segurança
                     </h3>
-                    <p className="text-slate-400 text-sm mb-6">
+                    <p className="text-slate-400 text-sm mb-8 leading-relaxed">
                       O Google enviou um SMS oficial para o número <br />
-                      <strong className="text-white text-base">
+                      <strong className="text-white text-lg mt-1 block">
                         {userData.whatsapp}
                       </strong>
                     </p>
@@ -1039,33 +1109,32 @@ export default function App() {
                         setInputCode(e.target.value.replace(/\D/g, ''))
                       }
                       autoComplete="one-time-code"
-                      className="w-full bg-slate-950 border-2 border-slate-600 text-center text-4xl tracking-[0.2em] p-4 rounded-xl text-white mb-6 focus:border-teal-500 outline-none transition-colors"
+                      className="w-full bg-[#020617] border-2 border-slate-700 text-center text-4xl font-bold tracking-[0.3em] p-5 rounded-2xl text-[#00FF00] mb-6 focus:border-[#00FF00] focus:shadow-[0_0_15px_rgba(0,255,0,0.2)] outline-none transition-all"
                       placeholder="000000"
                     />
 
-                    {/* Cronômetro de Reenvio */}
-                    <div className="mb-6 flex justify-center">
+                    <div className="mb-8 flex justify-center">
                       {resendTimer > 0 ? (
                         <p className="text-xs text-slate-400">
-                          Pode reenviar o SMS em <span className="font-bold text-teal-400">{resendTimer}s</span>
+                          Pode reenviar o SMS em <span className="font-bold text-[#00FF00]">{resendTimer}s</span>
                         </p>
                       ) : (
                         <button
                           type="button"
                           onClick={handleResendSms}
                           disabled={isSmsSending}
-                          className="text-teal-400 text-xs font-bold hover:text-teal-300 transition-colors underline decoration-dotted disabled:opacity-50"
+                          className="text-[#00AAFF] text-xs font-bold hover:text-white transition-colors underline decoration-dotted disabled:opacity-50"
                         >
                           {isSmsSending ? 'Reenviando...' : 'Não recebeu o código? Reenviar SMS agora'}
                         </button>
                       )}
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       <button
                         type="button"
                         onClick={() => setShowVerification(false)}
-                        className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl transition-all"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-xl transition-all"
                       >
                         Voltar
                       </button>
@@ -1073,7 +1142,7 @@ export default function App() {
                         type="button"
                         onClick={verifyCode}
                         disabled={inputCode.length !== 6}
-                        className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-[#00AAFF] hover:bg-[#0088cc] text-[#020617] font-black py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(0,170,255,0.4)]"
                       >
                         Validar
                       </button>
@@ -1082,14 +1151,14 @@ export default function App() {
                 </div>
               )}
 
-              <h2 className="text-2xl font-bold mb-6 text-center border-b border-slate-700 pb-4">
-                Credenciais
+              <h2 className="text-3xl font-black mb-8 text-center border-b border-slate-800 pb-6 text-white">
+                Credenciais de Acesso
               </h2>
-              <form onSubmit={handleFormSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1">
-                    <label className="text-sm text-slate-400 flex items-center gap-2">
-                      <User className="w-4 h-4" /> Nome Completo
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                      <User className="w-4 h-4 text-[#00AAFF]" /> Nome Completo
                     </label>
                     <input
                       required
@@ -1097,13 +1166,13 @@ export default function App() {
                       value={userData.nome}
                       onChange={handleInputChange}
                       type="text"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-teal-500 outline-none"
+                      className="w-full bg-[#020617] border border-slate-700 rounded-xl p-4 text-white focus:border-[#00AAFF] focus:ring-1 focus:ring-[#00AAFF] outline-none transition-all"
                       placeholder="Ex: João da Silva"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm text-slate-400 flex items-center gap-2">
-                      <Mail className="w-4 h-4" /> E-mail
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-[#00AAFF]" /> E-mail
                     </label>
                     <input
                       required
@@ -1111,13 +1180,13 @@ export default function App() {
                       value={userData.email}
                       onChange={handleInputChange}
                       type="email"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-teal-500 outline-none"
+                      className="w-full bg-[#020617] border border-slate-700 rounded-xl p-4 text-white focus:border-[#00AAFF] focus:ring-1 focus:ring-[#00AAFF] outline-none transition-all"
                       placeholder="joao@email.com"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm text-slate-400 flex items-center gap-2">
-                      <Phone className="w-4 h-4" /> WhatsApp (com DDD)
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-[#00AAFF]" /> WhatsApp (com DDD)
                     </label>
                     <input
                       required
@@ -1125,13 +1194,13 @@ export default function App() {
                       value={userData.whatsapp}
                       onChange={handleInputChange}
                       type="tel"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-teal-500 outline-none"
+                      className="w-full bg-[#020617] border border-slate-700 rounded-xl p-4 text-white focus:border-[#00AAFF] focus:ring-1 focus:ring-[#00AAFF] outline-none transition-all"
                       placeholder="(69) 90000-0000"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm text-slate-400 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" /> Data de Nascimento
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#00AAFF]" /> Data de Nascimento
                     </label>
                     <input
                       required
@@ -1139,81 +1208,81 @@ export default function App() {
                       value={userData.nascimento}
                       onChange={handleInputChange}
                       type="date"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:border-teal-500 outline-none"
+                      className="w-full bg-[#020617] border border-slate-700 rounded-xl p-4 text-white focus:border-[#00AAFF] focus:ring-1 focus:ring-[#00AAFF] outline-none transition-all [color-scheme:dark]"
                     />
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700 space-y-4">
-                  <label className="text-sm font-medium text-slate-300 block">
+                <div className="p-6 bg-[#020617]/50 rounded-2xl border border-slate-800 space-y-4 mt-2">
+                  <label className="text-base font-bold text-white block">
                     Já fez o curso de Frentista anteriormente?
                   </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-3 cursor-pointer group">
                       <input
                         type="radio"
                         name="fezCurso"
                         value="Sim"
                         onChange={handleInputChange}
-                        className="text-teal-500 bg-slate-800"
+                        className="w-5 h-5 text-[#00FF00] bg-[#020617] border-slate-600 focus:ring-[#00FF00]"
                         required
                       />
-                      <span>Sim</span>
+                      <span className="font-medium text-slate-300 group-hover:text-white transition-colors">Sim</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex items-center gap-3 cursor-pointer group">
                       <input
                         type="radio"
                         name="fezCurso"
                         value="Não"
                         onChange={handleInputChange}
-                        className="text-teal-500 bg-slate-800"
+                        className="w-5 h-5 text-[#00FF00] bg-[#020617] border-slate-600 focus:ring-[#00FF00]"
                         required
                       />
-                      <span>Não</span>
+                      <span className="font-medium text-slate-300 group-hover:text-white transition-colors">Não</span>
                     </label>
                   </div>
                   {userData.fezCurso === 'Sim' && (
-                    <div className="space-y-1 animate-in fade-in pt-2">
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 pt-3">
                       <input
                         required
                         name="qualEscola"
                         value={userData.qualEscola}
                         onChange={handleInputChange}
                         type="text"
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white focus:border-teal-500 outline-none"
-                        placeholder="Nome da instituição"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white focus:border-[#00FF00] outline-none transition-all"
+                        placeholder="Nome da instituição de ensino"
                       />
                     </div>
                   )}
                 </div>
 
-                <div className="mt-4 flex items-start gap-3 p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 hover:border-teal-900 transition-colors">
+                <div className="mt-6 flex items-start gap-4 p-5 bg-[#00AAFF]/5 rounded-2xl border border-[#00AAFF]/20 hover:border-[#00AAFF]/50 transition-colors cursor-pointer" onClick={() => setAceitouTermos(!aceitouTermos)}>
                   <input
                     type="checkbox"
                     id="termos"
                     required
                     checked={aceitouTermos}
                     onChange={(e) => setAceitouTermos(e.target.checked)}
-                    className="mt-1 w-5 h-5 cursor-pointer text-teal-500 bg-slate-800 border-slate-600 rounded focus:ring-teal-500 flex-shrink-0"
+                    className="mt-1 w-6 h-6 cursor-pointer text-[#00AAFF] bg-[#020617] border-slate-600 rounded focus:ring-[#00AAFF] flex-shrink-0"
                   />
                   <label
                     htmlFor="termos"
-                    className="text-[12px] text-slate-400 leading-tight cursor-pointer"
+                    className="text-sm text-slate-400 leading-relaxed cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <strong className="text-slate-200 block mb-1 uppercase tracking-wide text-[11px]">
+                    <strong className="text-[#00AAFF] block mb-1 uppercase tracking-wide text-xs font-black">
                       Aceito os termos
                     </strong>
                     Autorizo o uso dos meus dados e envio de
                     e-mail/mensagens/ligações referentes a este quiz e
-                    oportunidades oferecidas pela ETX Academy e seu grupo
-                    corporativo.
+                    oportunidades oferecidas pela ETX Academy e seu grupo corporativo.
                   </label>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting || isSmsSending || !aceitouTermos}
-                  className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                  className="w-full bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:from-[#00e600] hover:to-[#0099e6] text-[#020617] font-black py-5 px-6 rounded-2xl transition-all flex items-center justify-center gap-3 mt-8 disabled:opacity-50 disabled:cursor-not-allowed text-xl shadow-[0_0_20px_rgba(0,255,0,0.2)]"
                 >
                   {isSmsSending ? (
                     'Conectando ao Google SMS...'
@@ -1230,33 +1299,33 @@ export default function App() {
           )}
 
           {step === 'quiz' && (
-            <div className="no-print bg-slate-800/80 backdrop-blur-xl p-6 md:p-10 rounded-2xl border border-slate-700 shadow-2xl relative">
+            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative">
               {isTimeOut && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
-                  <div className="bg-slate-800 p-8 rounded-2xl border-2 border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.2)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500">
-                    <AlertCircle className="w-20 h-20 text-red-500 mb-4 animate-bounce" />
-                    <h3 className="text-3xl font-black text-white mb-2">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
+                  <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500">
+                    <AlertCircle className="w-24 h-24 text-red-500 mb-6 animate-bounce" />
+                    <h3 className="text-4xl font-black text-white mb-4">
                       Tempo Esgotado!
                     </h3>
-                    <p className="text-slate-400 mb-8 text-lg">
+                    <p className="text-slate-400 mb-10 text-lg font-medium">
                       Não conseguiu responder a tempo.
                     </p>
                     <button
                       onClick={handleTimeOutNext}
-                      className="bg-teal-500 hover:bg-teal-400 text-white flex items-center gap-2 py-4 px-10 rounded-xl font-bold transition-all transform hover:scale-105 shadow-lg"
+                      className="bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 py-4 px-12 rounded-xl font-black text-lg transition-all transform hover:scale-105 shadow-lg"
                     >
                       {currentQIndex < shuffledQuestions.length - 1
                         ? 'Avançar para a próxima'
                         : 'Finalizar Teste'}{' '}
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="w-6 h-6" />
                     </button>
                   </div>
                 </div>
               )}
 
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-700">
+              <div className="absolute top-0 left-0 w-full h-2 bg-[#020617] rounded-t-3xl overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-[#00FF00] to-[#00AAFF] transition-all duration-500 ease-out"
                   style={{
                     width: `${
                       ((currentQIndex + 1) / shuffledQuestions.length) * 100
@@ -1264,28 +1333,29 @@ export default function App() {
                   }}
                 ></div>
               </div>
-              <div className="flex justify-between items-end mb-8 mt-4 border-b border-slate-700 pb-4">
-                <div>
-                  <span className="text-teal-400 font-bold tracking-widest text-sm uppercase">
+
+              <div className="flex justify-between items-end mb-10 mt-6 border-b border-slate-800 pb-6">
+                <div className="pr-4">
+                  <span className="text-[#00AAFF] font-black tracking-[0.2em] text-xs uppercase mb-3 block">
                     Questão {currentQIndex + 1} de {shuffledQuestions.length}
                   </span>
-                  <h3 className="text-xl md:text-2xl font-semibold mt-2 leading-relaxed">
+                  <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight">
                     {shuffledQuestions[currentQIndex].text}
                   </h3>
                 </div>
                 <div
-                  className={`flex items-center gap-2 font-mono text-2xl px-4 py-2 rounded-lg font-bold border ${
+                  className={`flex items-center gap-2 font-mono text-3xl px-5 py-3 rounded-xl font-black border-2 transition-colors ${
                     timeLeft <= 5
-                      ? 'bg-red-500/20 text-red-400 border-red-500/50 animate-pulse'
-                      : 'bg-slate-900 border-slate-700 text-slate-300'
+                      ? 'bg-red-500/10 text-red-500 border-red-500/50 animate-pulse'
+                      : 'bg-[#020617] border-slate-800 text-[#00FF00]'
                   }`}
                 >
-                  <Clock className="w-5 h-5" /> 00:
+                  <Clock className="w-6 h-6" /> 00:
                   {timeLeft.toString().padStart(2, '0')}
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {shuffledQuestions[currentQIndex].options.map((opt, idx) => {
                   const isSelected = selectedOption === idx;
 
@@ -1293,32 +1363,32 @@ export default function App() {
                     <button
                       key={idx}
                       onClick={() => handleSelectOption(idx)}
-                      className={`w-full text-left p-4 md:p-5 rounded-xl border transition-all duration-200 flex items-start gap-3
+                      className={`w-full text-left p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group
                         ${
                           isSelected
-                            ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
-                            : 'hover:border-blue-500 hover:bg-blue-900/20 bg-slate-900/50 border-slate-700'
+                            ? 'bg-[#00AAFF]/10 border-[#00AAFF] shadow-[0_0_20px_rgba(0,170,255,0.2)]'
+                            : 'hover:border-[#00AAFF]/50 hover:bg-[#00AAFF]/5 bg-[#020617] border-slate-800'
                         }
                       `}
                     >
                       <div
-                        className={`w-6 h-6 shrink-0 rounded-full border-2 mt-0.5 flex items-center justify-center 
+                        className={`w-8 h-8 shrink-0 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors
                           ${
                             isSelected
-                              ? 'border-blue-500 bg-blue-500'
-                              : 'border-slate-500'
+                              ? 'border-[#00AAFF] bg-[#00AAFF]'
+                              : 'border-slate-600 group-hover:border-[#00AAFF]/50'
                           }
                         `}
                       >
                         {isSelected && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
+                          <div className="w-3 h-3 bg-white rounded-full" />
                         )}
                       </div>
                       <span
-                        className={`text-base md:text-lg 
+                        className={`text-lg md:text-xl font-medium leading-snug
                         ${
                           isSelected
-                            ? 'text-blue-400 font-bold'
+                            ? 'text-white font-bold'
                             : 'text-slate-300'
                         }
                       `}
@@ -1330,21 +1400,19 @@ export default function App() {
                 })}
               </div>
 
-              <div className="mt-8 flex justify-between items-center h-14">
-                <span className="text-slate-500 text-sm hidden md:inline-block">
-                  {selectedOption !== null
-                    ? 'Pressione ENTER para avançar'
-                    : ''}
+              <div className="mt-10 flex justify-between items-center h-16">
+                <span className="text-slate-500 text-sm hidden md:flex items-center gap-2 font-medium">
+                  <span className="px-2 py-1 bg-slate-800 rounded text-xs font-mono">ENTER</span> para avançar
                 </span>
                 {selectedOption !== null && (
                   <button
                     onClick={nextQuestion}
-                    className="bg-teal-500 hover:bg-teal-400 text-white flex items-center gap-2 py-3 px-8 rounded-lg font-bold transition-all animate-in slide-in-from-right-4 shadow-lg ml-auto"
+                    className="bg-[#00FF00] hover:bg-[#00e600] text-[#020617] flex items-center gap-3 py-4 px-10 rounded-xl font-black transition-all animate-in slide-in-from-right-8 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] hover:scale-105 ml-auto text-lg"
                   >
                     {currentQIndex < shuffledQuestions.length - 1
                       ? 'Avançar'
                       : 'Finalizar Teste'}{' '}
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-6 h-6" />
                   </button>
                 )}
               </div>
@@ -1352,31 +1420,31 @@ export default function App() {
           )}
 
           {step === 'result' && (
-            <div className="no-print bg-slate-800/80 backdrop-blur-xl p-8 md:p-12 rounded-2xl border border-slate-700 shadow-2xl animate-in zoom-in">
-              <div className="text-center mb-8 border-b border-slate-700 pb-8">
-                <h2 className="text-3xl font-bold mb-4">
-                  Seu Resultado: {score} de {shuffledQuestions.length}
+            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in">
+              <div className="text-center mb-10 border-b border-slate-800 pb-10">
+                <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
+                  Seu Resultado: <span className="text-[#00FF00]">{score}</span> de {shuffledQuestions.length}
                 </h2>
-                <div className="text-sm text-teal-400 flex items-center justify-center gap-2 mb-6">
+                <div className="text-base text-[#00AAFF] flex items-center justify-center gap-2 mb-10 font-bold tracking-widest uppercase">
                   {isSubmitting ? (
                     <span className="animate-pulse">
                       Enviando nota para o sistema...
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-4 h-4" /> Prova concluída e
+                      <CheckCircle className="w-6 h-6" /> Prova concluída e
                       registrada!
                     </>
                   )}
                 </div>
 
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-2xl mx-auto">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-5 max-w-3xl mx-auto">
                   <button
                     onClick={() => {
                       playAudio('click');
                       setStep('summary');
                     }}
-                    className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-xl shadow-lg flex items-center justify-center gap-3 transform hover:scale-105 transition-all"
+                    className="w-full md:w-auto bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:from-[#00e600] hover:to-[#0099e6] text-[#020617] font-black text-lg py-5 px-10 rounded-2xl shadow-[0_0_20px_rgba(0,255,0,0.3)] flex items-center justify-center gap-3 transform hover:scale-105 transition-all"
                   >
                     <FileText className="w-6 h-6" /> Ver Resumo e Salvar PDF
                   </button>
@@ -1384,48 +1452,54 @@ export default function App() {
                   <button
                     onClick={requestDetailedEmail}
                     disabled={emailSent || isSendingEmail}
-                    className={`w-full md:w-auto text-white font-bold py-4 px-8 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all
+                    className={`w-full md:w-auto text-white font-black text-lg py-5 px-10 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all border-2
                       ${
                         emailSent
-                          ? 'bg-emerald-600'
-                          : 'bg-slate-700 hover:bg-slate-600'
+                          ? 'bg-slate-800 border-[#00FF00] text-[#00FF00]'
+                          : 'bg-[#020617] border-slate-700 hover:border-[#00AAFF] hover:bg-slate-800'
                       }
                       disabled:opacity-100 disabled:cursor-not-allowed`}
                   >
-                    <Mail className="w-6 h-6" />
+                    {emailSent ? <CheckCircle className="w-6 h-6" /> : <Mail className="w-6 h-6" />}
                     {isSendingEmail
                       ? 'Enviando...'
                       : emailSent
-                      ? 'E-mail Enviado com Sucesso!'
+                      ? 'E-mail Enviado!'
                       : 'Receber PDF por E-mail'}
                   </button>
                 </div>
               </div>
 
               {/* TUTOR IA DA ETX */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4 bg-teal-500/10 p-4 rounded-xl border border-teal-500/20">
-                  <Bot className="w-8 h-8 text-teal-400" />
+              <div className="mb-10">
+                <div className="flex items-center gap-4 mb-6 bg-[#00FF00]/10 p-5 rounded-2xl border border-[#00FF00]/20">
+                  <div className="w-14 h-14 bg-[#00FF00]/20 rounded-full flex items-center justify-center shrink-0">
+                    <Bot className="w-8 h-8 text-[#00FF00]" />
+                  </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white">Tutor IA da ETX</h3>
-                    <p className="text-sm text-slate-400">
+                    <h3 className="text-2xl font-black text-white">Tutor IA da ETX</h3>
+                    <p className="text-slate-400 font-medium">
                       Mensagem especial de conclusão do seu desafio.
                     </p>
                   </div>
                 </div>
                 
-                <div className="bg-slate-900/50 p-6 rounded-xl border border-teal-900/30 animate-in fade-in flex flex-col items-center text-center">
+                <div className="bg-[#020617] p-8 rounded-3xl border border-slate-800 shadow-inner flex flex-col items-center text-center">
                   {tutorMsg ? (
-                    <div className={`text-sm p-4 rounded-lg border text-left w-full bg-teal-900/10 border-teal-500/30 text-teal-100 leading-relaxed`}>
+                    <div className={`text-base md:text-lg p-6 rounded-2xl border-l-4 text-left w-full shadow-md ${
+                      tutorMsg.toLowerCase().includes('erro google') || tutorMsg.toLowerCase().includes('não foi possível')
+                        ? 'bg-slate-800/80 border-slate-500 text-slate-300' 
+                        : 'bg-[#00AAFF]/10 border-[#00AAFF] text-[#00AAFF] leading-relaxed font-medium'
+                    }`}>
                       {tutorMsg}
                     </div>
                   ) : (
                     <button
                       onClick={generateTutorMessage}
                       disabled={isTutorLoading}
-                      className="text-sm bg-teal-600 hover:bg-teal-500 py-3 px-6 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 text-white"
+                      className="text-lg bg-[#00AAFF] hover:bg-[#0088cc] py-4 px-10 rounded-xl font-black flex items-center gap-3 shadow-[0_0_20px_rgba(0,170,255,0.3)] transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 text-[#020617]"
                     >
-                      {isTutorLoading ? 'Gerando mensagem...' : 'Ouvir o Tutor IA'} <Sparkles size={16}/>
+                      {isTutorLoading ? 'Gerando mensagem...' : 'Ouvir o Tutor IA'} <Sparkles className="w-6 h-6"/>
                     </button>
                   )}
                 </div>
@@ -1434,17 +1508,19 @@ export default function App() {
               {/* REVISÃO DE ERROS */}
               {score < shuffledQuestions.length && (
                 <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-6 bg-indigo-500/10 p-4 rounded-xl border border-indigo-500/20">
-                    <Bot className="w-8 h-8 text-indigo-400" />
+                  <div className="flex items-center gap-4 mb-6 bg-rose-500/10 p-5 rounded-2xl border border-rose-500/20">
+                    <div className="w-14 h-14 bg-rose-500/20 rounded-full flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-8 h-8 text-rose-500" />
+                    </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white">Revisão IA</h3>
-                      <p className="text-sm text-slate-400">
-                        Descubra o motivo dos seus erros.
+                      <h3 className="text-2xl font-black text-white">Revisão IA de Erros</h3>
+                      <p className="text-slate-400 font-medium">
+                        Descubra o motivo de cada erro.
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     {shuffledQuestions.map((q, idx) => {
                       if (userAnswers[idx] === q.correct) return null;
 
@@ -1453,34 +1529,36 @@ export default function App() {
                       return (
                         <div
                           key={idx}
-                          className="bg-slate-900/50 border border-red-900/30 rounded-xl p-5"
+                          className="bg-[#020617] border border-slate-800 rounded-3xl p-6 md:p-8"
                         >
-                          <p className="font-semibold text-slate-200 mb-2">
-                            Questão {idx + 1} (Você errou)
+                          <p className="font-bold text-white text-lg mb-4 flex items-center gap-2">
+                            <span className="bg-rose-500 text-white text-xs px-2 py-1 rounded-md uppercase tracking-widest font-black">Errou</span>
+                            Questão {idx + 1}
                           </p>
+                          <p className="text-slate-400 mb-6">{q.text}</p>
 
                           {aiData && !aiData.isError ? (
-                            <div className="bg-indigo-900/20 border-l-4 border-indigo-500 p-3 text-sm text-indigo-100">
+                            <div className="bg-[#00AAFF]/10 border-l-4 border-[#00AAFF] p-5 text-base text-[#00AAFF] font-medium rounded-r-xl">
                               {aiData.text}
                             </div>
                           ) : (
-                            <div className="flex flex-col items-start gap-3">
+                            <div className="flex flex-col items-start gap-4">
                               {aiData?.isError && (
-                                <p className="text-red-400 text-sm font-medium">
+                                <p className="text-rose-400 text-sm font-medium bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 w-full">
                                   {aiData.text}
                                 </p>
                               )}
                               <button
                                 onClick={() => explainWrongAnswer(idx)}
                                 disabled={isAiLoading[idx]}
-                                className="text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed transition-colors px-4 py-2 rounded flex items-center gap-2"
+                                className="text-sm bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors px-6 py-3 rounded-xl flex items-center gap-2 font-bold"
                               >
                                 {isAiLoading[idx]
                                   ? 'Pensando...'
                                   : aiData?.isError
                                   ? 'Tentar Novamente'
-                                  : 'Explicar com IA'}{' '}
-                                <Sparkles className="w-4 h-4" />
+                                  : 'Explicar erro com IA'}{' '}
+                                <Sparkles className="w-4 h-4 text-[#00AAFF]" />
                               </button>
                             </div>
                           )}
@@ -1494,59 +1572,59 @@ export default function App() {
           )}
 
           {step === 'summary' && (
-            <div className="bg-white text-slate-900 p-8 md:p-14 rounded-2xl shadow-2xl relative overflow-hidden animate-in fade-in">
+            <div className="bg-white text-slate-900 p-8 md:p-14 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in">
               <div className="watermark-text">ETX ACADEMY</div>
 
               <div className="no-print fixed bottom-6 right-6 md:top-6 md:bottom-auto flex gap-4 z-50">
                 <button
                   onClick={() => setStep('result')}
-                  className="bg-slate-800 text-white px-5 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-slate-700 transition-all"
+                  className="bg-slate-900 text-white px-6 py-4 rounded-full font-black shadow-xl flex items-center gap-3 hover:bg-slate-800 transition-all"
                 >
                   <ArrowLeft className="w-5 h-5" /> Voltar
                 </button>
                 <button
                   onClick={handlePrintPDF}
-                  className="bg-teal-600 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 hover:bg-teal-500 transition-all transform hover:scale-105"
+                  className="bg-[#00FF00] text-[#020617] px-8 py-4 rounded-full font-black shadow-[0_0_20px_rgba(0,255,0,0.4)] flex items-center gap-3 hover:bg-[#00e600] transition-all transform hover:scale-105"
                 >
-                  <Download className="w-5 h-5" /> Imprimir / Salvar PDF
+                  <Download className="w-6 h-6" /> Imprimir / Salvar PDF
                 </button>
               </div>
 
-              <div className="print-header hidden print:block text-center mb-10 pb-6 border-b-2 border-teal-600">
-                <h1 className="text-4xl font-black uppercase text-teal-800 tracking-wider">
+              <div className="print-header hidden print:block text-center mb-10 pb-6 border-b-4 border-[#00FF00]">
+                <h1 className="text-5xl font-black uppercase text-[#020617] tracking-tighter">
                   ETX Academy
                 </h1>
-                <p className="text-slate-500 font-medium">
+                <p className="text-slate-500 font-bold tracking-widest uppercase text-xs mt-2">
                   Sorte é estar preparado quando a oportunidade vem!
                 </p>
-                <h2 className="text-xl font-bold mt-4 text-slate-800">
+                <h2 className="text-2xl font-black mt-8 text-[#00AAFF]">
                   Resumo Oficial: NR 20 para Frentistas
                 </h2>
-                <div className="text-sm mt-2 text-slate-600">
+                <div className="text-lg mt-4 text-slate-700 flex justify-center gap-8">
                   <p>
-                    Aluno(a): <strong>{userData.nome}</strong>
+                    Aluno(a): <strong className="text-black">{userData.nome}</strong>
                   </p>
                   <p>
                     Acertos:{' '}
-                    <strong>
+                    <strong className="text-[#00AAFF]">
                       {score} de {shuffledQuestions.length}
                     </strong>
                   </p>
                 </div>
               </div>
 
-              <div className="no-print text-center mb-10">
-                <h1 className="text-3xl font-black text-slate-800">
+              <div className="no-print text-center mb-12">
+                <h1 className="text-4xl font-black text-slate-900 mb-2">
                   Seu Resumo Oficial
                 </h1>
-                <p className="text-slate-500">
+                <p className="text-slate-500 font-medium text-lg">
                   Material de consulta didático elaborado pela ETX Academy.
                 </p>
               </div>
 
               <div className="space-y-8 relative z-10">
-                <h3 className="text-2xl font-bold text-teal-700 border-b pb-2">
-                  Revisão do Gabarito e Explicações
+                <h3 className="text-3xl font-black text-slate-900 border-b-2 border-slate-100 pb-4 mb-8">
+                  Revisão do Gabarito
                 </h3>
                 {shuffledQuestions.map((q, idx) => {
                   const userAnswerIndex = userAnswers[idx];
@@ -1559,40 +1637,40 @@ export default function App() {
                   return (
                     <div
                       key={idx}
-                      className="break-inside-avoid bg-white/90 p-6 rounded-xl border border-slate-200 shadow-sm print:shadow-none print:border-b print:bg-transparent"
+                      className="break-inside-avoid bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm print:shadow-none print:border-b print:bg-transparent print:p-4"
                     >
-                      <h4 className="font-bold text-lg text-slate-800 mb-4">
-                        <span className="text-teal-600">{idx + 1}.</span>{' '}
+                      <h4 className="font-bold text-xl text-slate-900 mb-6 leading-relaxed">
+                        <span className="text-[#00AAFF] font-black mr-2">{idx + 1}.</span>{' '}
                         {q.text}
                       </h4>
 
-                      <div className="flex flex-col gap-3 mb-5">
+                      <div className="flex flex-col gap-4 mb-6">
                         <div
-                          className={`p-4 rounded-lg font-medium border ${
+                          className={`p-5 rounded-2xl font-semibold border-2 ${
                             isCorrect
-                              ? 'bg-emerald-100 border-emerald-200 text-emerald-900'
-                              : 'bg-red-100 border-red-200 text-red-900'
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-900'
+                              : 'bg-rose-50 border-rose-400 text-rose-900'
                           }`}
                         >
-                          <span className="block text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
+                          <span className="block text-xs font-black uppercase tracking-widest mb-2 opacity-60">
                             {isCorrect ? 'Você acertou:' : 'Sua Resposta:'}
                           </span>
-                          {userAnswerText}
+                          <span className="text-lg">{userAnswerText}</span>
                         </div>
 
                         {!isCorrect && (
-                          <div className="p-4 rounded-lg font-medium bg-emerald-50 border border-emerald-200 text-emerald-800">
-                            <span className="block text-xs font-bold uppercase tracking-wider mb-1 opacity-70">
+                          <div className="p-5 rounded-2xl font-semibold bg-emerald-50 border-2 border-emerald-400 text-emerald-900">
+                            <span className="block text-xs font-black uppercase tracking-widest mb-2 opacity-60">
                               Resposta Correta:
                             </span>
-                            {q.options[q.correct]}
+                            <span className="text-lg">{q.options[q.correct]}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="text-slate-700 text-base leading-relaxed pl-4 border-l-4 border-amber-400 bg-amber-50/50 p-3 rounded-r-lg">
-                        <strong className="text-amber-800 block mb-1">
-                          Por que essa é a resposta?
+                      <div className="text-slate-800 text-base leading-relaxed pl-5 border-l-4 border-[#00AAFF] bg-[#00AAFF]/5 p-5 rounded-r-2xl font-medium">
+                        <strong className="text-[#00AAFF] block mb-2 font-black uppercase tracking-wider text-sm">
+                          Explicação Técnica
                         </strong>
                         {q.explanation}
                       </div>
@@ -1601,60 +1679,43 @@ export default function App() {
                 })}
               </div>
 
-              <div className="page-break mt-12 bg-slate-900 text-white print-banner p-10 rounded-3xl text-center shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-20">
-                  <School className="w-32 h-32 text-teal-300" />
+              <div className="page-break mt-16 bg-[#020617] text-white print-banner p-12 rounded-[2.5rem] text-center shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-10">
+                  <School className="w-48 h-48 text-[#00FF00]" />
+                </div>
+                
+                <div className="absolute bottom-0 left-0 p-6 opacity-10 transform scale-x-[-1]">
+                  <School className="w-48 h-48 text-[#00AAFF]" />
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-black mb-6 uppercase tracking-wide text-teal-400 print:text-teal-700 relative z-10">
-                  ETX ACADEMY - ESCOLA MAIS PROCURADA DA REGIÃO PARA
-                  TREINAMENTOS E NRs
+                <h2 className="text-3xl md:text-4xl font-black mb-8 uppercase tracking-tight text-[#00FF00] print:text-green-700 relative z-10 leading-tight">
+                  ETX ACADEMY <br/><span className="text-white text-2xl md:text-3xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
                 </h2>
 
-                <p className="text-lg md:text-xl font-medium mb-6 leading-relaxed text-slate-300 print:text-slate-800 relative z-10">
-                  ENTRE EM CONTATO E RESERVE SUA VAGA, VOCÊ TEM GARANTIDO{' '}
-                  <strong className="text-amber-400 print:text-amber-600 text-2xl">
+                <p className="text-lg md:text-2xl font-medium mb-8 leading-relaxed text-slate-300 print:text-slate-800 relative z-10">
+                  ENTRE EM CONTATO E RESERVE SUA VAGA. <br/>VOCÊ TEM GARANTIDO{' '}
+                  <strong className="text-[#00AAFF] print:text-blue-700 text-3xl font-black block mt-2 mb-2">
                     10% DE DESCONTO
                   </strong>{' '}
-                  NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO
-                  DESTE QUIZ.
+                  NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO DESTE QUIZ.
                 </p>
 
-                <p className="text-lg font-bold mb-8 text-white print:text-slate-900 relative z-10">
-                  GUARDE SEU RESUMO E APRESENTE NA ETX PARA GARANTIR SEU
-                  DESCONTO (Até 7 dias úteis).
+                <p className="text-base font-bold mb-10 text-slate-400 print:text-slate-600 relative z-10">
+                  GUARDE SEU RESUMO E APRESENTE NA ETX PARA GARANTIR SEU DESCONTO (Até 7 dias úteis).
                 </p>
 
                 <a
                   href="https://wa.me/5569981197373?text=Ol%C3%A1%21%20Acabei%20de%20realizar%20o%20Desafio%20Avaliativo%20da%20NR%2020%20e%20gostaria%20de%20saber%20em%20quais%20cursos%20posso%20aplicar%20o%20meu%20benef%C3%ADcio%20de%2010%25%20de%20desconto."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex bg-teal-500 hover:bg-teal-400 transition-colors print:bg-teal-100 print:border-2 print:border-teal-500 text-slate-900 print:text-teal-900 font-black text-xl md:text-3xl px-8 py-4 rounded-xl items-center justify-center gap-4 relative z-10 shadow-lg no-underline"
+                  className="inline-flex bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:scale-105 transition-transform print:bg-none print:border-4 print:border-black text-[#020617] print:text-black font-black text-2xl md:text-4xl px-10 py-6 rounded-2xl items-center justify-center gap-4 relative z-10 shadow-[0_0_30px_rgba(0,255,0,0.3)] no-underline"
                 >
-                  <Phone className="w-8 h-8" /> WHATSAPP: (69) 9 8119-7373
+                  <Phone className="w-10 h-10 fill-current" /> (69) 9 8119-7373
                 </a>
-                <p className="text-sm text-slate-400 print:text-slate-600 mt-4 relative z-10 font-medium">
-                  * Consultar diretrizes e regras com a secretaria da ETX.
-                </p>
               </div>
             </div>
           )}
-
-          {/* ANÚNCIO MOBILE - BASE */}
-          <div className="lg:hidden w-full no-print">
-            {/* O SEU SCRIPT DE PUBLICIDADE MOBILE BASE ENTRA AQUI */}
-          </div>
         </div>
-
-        {/* ANÚNCIO DESKTOP - DIREITA */}
-        <aside className="hidden lg:flex flex-col gap-6 w-[300px] sticky top-8 no-print">
-          <div className="w-full">
-            {/* O SEU SCRIPT DE PUBLICIDADE 300x250 ENTRA AQUI */}
-          </div>
-          <div className="w-full">
-            {/* O SEU SCRIPT DE PUBLICIDADE 300x250 (2) ENTRA AQUI */}
-          </div>
-        </aside>
       </main>
     </div>
   );
