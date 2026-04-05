@@ -5,7 +5,7 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  School,
+  Fuel,
   User,
   Mail,
   Phone,
@@ -498,7 +498,7 @@ export default function App() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [userAnswers, setUserAnswers] = useState([]);
   const [isTimeOut, setIsTimeOut] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30); // ALTERADO PARA 30 SEGUNDOS
+  const [timeLeft, setTimeLeft] = useState(30); 
   const [score, setScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -782,7 +782,7 @@ export default function App() {
 
     setIsSubmitting(false);
     setStep('quiz');
-    setTimeLeft(30); // RESET PARA 30 SEGUNDOS
+    setTimeLeft(30);
     setIsTimeOut(false);
     setSelectedOption(null);
     playAudio('start_quiz');
@@ -803,6 +803,7 @@ export default function App() {
     if (isCorrect) playAudio('correct_ans');
     else playAudio('wrong_ans');
 
+    // TEMPO DE TRANSIÇÃO REDUZIDO PARA 0.5s (500ms)
     setTimeout(() => {
       setIsAnswering(false);
       
@@ -817,12 +818,12 @@ export default function App() {
       if (currentQIndex < shuffledQuestions.length - 1) {
         setCurrentQIndex((prev) => prev + 1);
         setSelectedOption(null);
-        setTimeLeft(30); // RESET PARA 30 SEGUNDOS
+        setTimeLeft(30);
         setIsTimeOut(false);
       } else {
         processQuizFinish(newAnswers);
       }
-    }, 1500);
+    }, 500); 
   };
 
   const handleTimeOutNext = () => {
@@ -834,7 +835,7 @@ export default function App() {
     if (currentQIndex < shuffledQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
-      setTimeLeft(30); // RESET PARA 30 SEGUNDOS
+      setTimeLeft(30);
       setIsTimeOut(false);
     } else {
       processQuizFinish(newAnswers);
@@ -948,6 +949,7 @@ export default function App() {
       const isError = explanation.toLowerCase().includes('erro api');
       setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: explanation, isError: isError } }));
     } catch (e) {
+      // SOLUÇÃO INFALÍVEL: Se a API falhar completamente (limites, rede), entrega a explicação local instantaneamente.
       const fallbackExplicacao = `A alternativa correta é: "${question.options[question.correct]}". ${question.explanation} (Dica do Eliot: Conforme a NR 20, seguir as medidas de segurança é vital para evitar acidentes com inflamáveis).`;
       setAiExplanations((prev) => ({ ...prev, [qIndex]: { text: fallbackExplicacao, isError: false } }));
     } finally {
@@ -964,6 +966,7 @@ export default function App() {
       const explanation = await callGeminiAPI(prompt, true);
       setTutorMsg(explanation);
     } catch(e) {
+      // FALLBACK INFALÍVEL DO TUTOR
       setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
     } finally {
       setIsTutorLoading(false);
@@ -974,7 +977,7 @@ export default function App() {
     window.print();
   };
 
-  const percResult = Math.round((score / QUESTIONS.length) * 100);
+  const percResult = Math.round((score / QUESTIONS.length) * 100) || 0;
   const shareText = `Acabei de acertar ${percResult}% no Desafio Avaliativo de NR20 da ETX Academy! Duvido você bater minha nota. Faça o teste aqui: https://quiz-frentista-etx-academy.vercel.app`;
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
@@ -1002,7 +1005,7 @@ export default function App() {
             .print-container { max-width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: transparent !important; }
             h1, h2, h3, h4 { color: #0f172a !important; font-family: sans-serif; }
             p, span, div { color: #334155 !important; }
-            .print-header { display: block !important; margin-bottom: 40px; }
+            .print-header { display: flex !important; margin-bottom: 40px; }
             .print-banner { border: 4px solid #00FF00 !important; background: white !important; color: black !important; border-radius: 16px; padding: 30px; text-align: center; }
             .watermark-text {
               position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
@@ -1052,8 +1055,8 @@ export default function App() {
       <header className="no-print w-full p-6 bg-[#020617] border-b border-slate-800 shadow-lg flex justify-center items-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
-          <h1 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00FF00] to-[#00AAFF]">
-            ETX <span className="text-slate-100">ACADEMY</span>
+          <h1 className="text-5xl font-black tracking-tighter">
+          <span className="text-[#00AAFF]">ETX</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
@@ -1061,8 +1064,13 @@ export default function App() {
         </div>
       </header>
 
+      {/* REFORÇO NO LAYOUT: asides idênticos à esquerda e à direita garantem que o meio não fica torto */}
       <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
-        <aside className="hidden lg:flex flex-col w-[300px] sticky top-8 no-print"></aside>
+        
+        {/* ANÚNCIO DESKTOP - ESQUERDA */}
+        <aside className="hidden lg:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
+          {/* INSIRA SEU SCRIPT DE ANÚNCIO AQUI */}
+        </aside>
 
         <div className="w-full max-w-3xl print-container flex flex-col gap-6">
 
@@ -1081,7 +1089,7 @@ export default function App() {
               />
 
               <div className="w-28 h-28 bg-[#00FF00]/10 rounded-full flex items-center justify-center mx-auto mb-8 relative z-10 transition-transform duration-300 group-hover:scale-110 shadow-[0_0_30px_rgba(0,255,0,0.15)]">
-                <School className="w-14 h-14 text-[#00FF00]" />
+                <Fuel className="w-14 h-14 text-[#00FF00]" />
                 <Sparkles className="w-8 h-8 text-[#00AAFF] absolute -top-2 -right-2 animate-pulse" />
               </div>
               <h2 className="text-4xl font-black mb-6 relative z-10 text-white tracking-tight">
@@ -1089,7 +1097,7 @@ export default function App() {
               </h2>
 
               <p className="text-slate-300 mb-10 max-w-lg mx-auto text-lg leading-relaxed relative z-10 font-medium">
-                <strong className="text-[#00FF00] text-2xl block mb-3 font-black">
+                <strong className="text-[#00AAFF] text-2xl block mb-3 font-black">
                   Teste os seus conhecimentos sobre inflamáveis e segurança
                   (NR20 para Frentistas).
                 </strong>
@@ -1394,12 +1402,16 @@ export default function App() {
                   let btnDynamicClasses = '';
                   
                   if (isAnswering) {
-                    if (isCorrectAns) {
-                      btnDynamicClasses = 'bg-[#00FF00]/80 border-[#00FF00] text-black shadow-[0_0_20px_#00FF00] animate-pulse';
-                    } else if (isSelected && !isCorrectAns) {
-                      btnDynamicClasses = 'bg-red-600/80 border-red-500 text-white shadow-[0_0_20px_red]';
+                    if (isSelected) {
+                       if (isCorrectAns) {
+                         btnDynamicClasses = 'bg-[#00FF00]/80 border-[#00FF00] text-black shadow-[0_0_20px_#00FF00] animate-pulse';
+                       } else {
+                         // Oculta a correta e mostra só a errada a vermelho
+                         btnDynamicClasses = 'bg-red-600/80 border-red-500 text-white shadow-[0_0_20px_red]';
+                       }
                     } else {
-                      btnDynamicClasses = 'opacity-30 border-slate-800 bg-[#020617] text-slate-500';
+                       // Oculta as outras para não dar a dica da correta
+                       btnDynamicClasses = 'opacity-30 border-slate-800 bg-[#020617] text-slate-500';
                     }
                   } else {
                     btnDynamicClasses = isSelected
@@ -1417,8 +1429,7 @@ export default function App() {
                       <div
                         className={`w-8 h-8 shrink-0 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors
                           ${
-                            isAnswering && isCorrectAns ? 'border-black bg-black' :
-                            isAnswering && isSelected && !isCorrectAns ? 'border-white bg-white' :
+                            isAnswering && isSelected ? (isCorrectAns ? 'border-black bg-black' : 'border-white bg-white') :
                             isSelected
                               ? 'border-[#00AAFF] bg-[#00AAFF]'
                               : 'border-slate-600 group-hover:border-[#00AAFF]/50'
@@ -1426,13 +1437,13 @@ export default function App() {
                         `}
                       >
                         {isSelected && (
-                          <div className={`w-3 h-3 rounded-full ${isAnswering && isCorrectAns ? 'bg-[#00FF00]' : isAnswering && !isCorrectAns ? 'bg-red-500' : 'bg-white'}`} />
+                          <div className={`w-3 h-3 rounded-full ${isAnswering && isSelected ? (isCorrectAns ? 'bg-[#00FF00]' : 'bg-red-500') : 'bg-white'}`} />
                         )}
                       </div>
                       <span
                         className={`text-lg md:text-xl font-medium leading-snug
                         ${
-                          isSelected || (isAnswering && isCorrectAns)
+                          isSelected || (isAnswering && isSelected && isCorrectAns)
                             ? 'font-bold'
                             : ''
                         }
@@ -1459,7 +1470,7 @@ export default function App() {
                 )}
                 {isAnswering && (
                   <div className="ml-auto flex items-center gap-2 text-[#00FF00] font-bold">
-                    Avaliando resposta...
+                    Avançando...
                   </div>
                 )}
               </div>
@@ -1626,10 +1637,10 @@ export default function App() {
               {/* BANNER PROMOCIONAL NA TELA DE RESULTADOS */}
               <div className="mt-12 bg-[#020617] text-white p-8 md:p-12 rounded-[2.5rem] text-center border-4 border-[#00FF00] shadow-[0_0_40px_rgba(0,255,0,0.15)] relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <School className="w-40 h-40 text-[#00FF00]" />
+                  <Fuel className="w-40 h-40 text-[#00FF00]" />
                 </div>
-                <h2 className="text-3xl md:text-4xl font-black mb-6 uppercase tracking-tight text-[#00FF00] relative z-10 leading-tight">
-                  ETX ACADEMY <br/><span className="text-white text-xl md:text-2xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
+                <h2 className="text-3xl md:text-4xl font-black mb-6 uppercase tracking-tight relative z-10 leading-tight">
+                  <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-[#00FF00]">ACADEMY</span> <br/><span className="text-white text-xl md:text-2xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
                 </h2>
                 <p className="text-lg font-medium mb-6 text-slate-300 relative z-10">
                   ENTRE EM CONTATO E RESERVE SUA VAGA. <br/>VOCÊ TEM GARANTIDO{' '}
@@ -1657,7 +1668,7 @@ export default function App() {
               <div className="no-print fixed bottom-6 right-6 md:top-6 md:bottom-auto flex gap-4 z-50">
                 <button
                   onClick={() => setStep('result')}
-                  className="bg-slate-800 text-white px-6 py-4 rounded-full font-black shadow-xl flex items-center gap-3 hover:bg-slate-800 transition-all"
+                  className="bg-slate-900 text-white px-6 py-4 rounded-full font-black shadow-xl flex items-center gap-3 hover:bg-slate-800 transition-all"
                 >
                   <ArrowLeft className="w-5 h-5" /> Voltar
                 </button>
@@ -1669,9 +1680,11 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="print-header hidden print:block text-center mb-10 pb-6 border-b-4 border-[#00FF00]">
+              <div className="print-header hidden print:flex flex-col items-center text-center mb-10 pb-6 border-b-4 border-[#00FF00]">
+                {/* LOGO PARA O PDF: Substitua a URL abaixo pelo link público da sua logo hospedada */}
+                <img src="https://via.placeholder.com/300x100.png?text=COLE+SUA+LOGO+AQUI" alt="Logo ETX Academy" className="h-20 mb-4 object-contain" />
                 <h1 className="text-5xl font-black uppercase tracking-tighter" style={{ color: '#0f172a' }}>
-                  ETX ACADEMY
+                  <span className="text-[#00AAFF]">ETX</span> <span className="text-slate-900">ACADEMY</span>
                 </h1>
                 <p className="text-slate-500 font-bold tracking-widest uppercase text-xs mt-2">
                   Sorte é estar preparado quando a oportunidade vem!
@@ -1693,8 +1706,8 @@ export default function App() {
               </div>
 
               <div className="no-print text-center mb-12 pb-8 border-b-2 border-slate-100">
-                 <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00AAFF] to-[#00FF00]">
-                    ETX ACADEMY
+                 <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">
+                    <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-900">ACADEMY</span>
                   </h1>
                 <h2 className="text-2xl font-black text-slate-900 mt-6 mb-2">
                   Seu Resumo Oficial
@@ -1763,15 +1776,15 @@ export default function App() {
 
               <div className="page-break mt-16 bg-[#020617] text-white print-banner p-12 rounded-[2.5rem] text-center shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-10">
-                  <School className="w-48 h-48 text-[#00FF00]" />
+                  <Fuel className="w-48 h-48 text-[#00FF00]" />
                 </div>
                 
                 <div className="absolute bottom-0 left-0 p-6 opacity-10 transform scale-x-[-1]">
-                  <School className="w-48 h-48 text-[#00AAFF]" />
+                  <Fuel className="w-48 h-48 text-[#00AAFF]" />
                 </div>
 
-                <h2 className="text-3xl md:text-4xl font-black mb-8 uppercase tracking-tight text-[#00FF00] print:text-green-700 relative z-10 leading-tight">
-                  ETX ACADEMY <br/><span className="text-white text-2xl md:text-3xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
+                <h2 className="text-3xl md:text-4xl font-black mb-8 uppercase tracking-tight relative z-10 leading-tight">
+                  <span className="text-[#00FF00] print:text-green-700">ET</span><span className="text-[#00AAFF] print:text-blue-700">X</span> <span className="text-[#00FF00] print:text-green-700">ACADEMY</span> <br/><span className="text-white text-2xl md:text-3xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
                 </h2>
 
                 <p className="text-lg md:text-2xl font-medium mb-8 leading-relaxed text-slate-300 print:text-slate-800 relative z-10">
@@ -1798,6 +1811,11 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* ANÚNCIO DESKTOP - DIREITA (Simétrico à esquerda para manter tudo ao centro) */}
+        <aside className="hidden lg:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
+           {/* INSIRA SEUS SCRIPTS DE ANÚNCIO (300X250, ETC) AQUI */}
+        </aside>
       </main>
 
       <footer className="no-print w-full py-6 bg-[#020617] border-t border-slate-800 text-center mt-auto">
