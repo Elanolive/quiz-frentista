@@ -65,6 +65,37 @@ const playAudio = (type) => {
   } catch (err) {}
 };
 
+// --- COMPONENTE DE ANÚNCIOS GOOGLE ADSENSE ---
+const AdBanner = () => {
+  const adRef = useRef(null);
+
+  useEffect(() => {
+    // Usa um pequeno delay para garantir que o layout foi totalmente desenhado no Vercel
+    const timer = setTimeout(() => {
+      if (adRef.current && adRef.current.innerHTML === '') {
+        // Só injeta o anúncio se o bloco estiver VISÍVEL na tela (largura > 0)
+        // Isso bloqueia o erro "No slot size for availableWidth=0" nos telemóveis
+        if (adRef.current.clientWidth > 0 || adRef.current.clientHeight > 0) {
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          } catch (err) {
+            console.log('AdSense Push Error:', err);
+          }
+        }
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <ins className="adsbygoogle block w-full h-full min-h-[50px] min-w-[200px]"
+         ref={adRef}
+         data-ad-client="ca-pub-3040128091952429"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  );
+};
+
 // --- DADOS DAS QUESTÕES (Exatamente 30 Questões) ---
 const QUESTIONS = [
   {
@@ -563,6 +594,15 @@ export default function App() {
       adsenseMeta.content = "ca-pub-3040128091952429";
       document.head.appendChild(adsenseMeta);
     }
+
+    let adsenseScript = document.querySelector('script[src*="adsbygoogle.js"]');
+    if (!adsenseScript) {
+      adsenseScript = document.createElement('script');
+      adsenseScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3040128091952429";
+      adsenseScript.async = true;
+      adsenseScript.crossOrigin = "anonymous";
+      document.head.appendChild(adsenseScript);
+    }
   }, []);
 
   // Proteção contra Refresh/Atualização (F5)
@@ -813,7 +853,7 @@ export default function App() {
 
     setIsSubmitting(false);
     setStep('quiz');
-    setTimeLeft(40);
+    setTimeLeft(40); // 40 SEGUNDOS
     setIsTimeOut(false);
     setSelectedOption(null);
     playAudio('start_quiz');
@@ -849,7 +889,7 @@ export default function App() {
       if (currentQIndex < shuffledQuestions.length - 1) {
         setCurrentQIndex((prev) => prev + 1);
         setSelectedOption(null);
-        setTimeLeft(40);
+        setTimeLeft(40); // 40 SEGUNDOS
         setIsTimeOut(false);
       } else {
         processQuizFinish(newAnswers);
@@ -866,7 +906,7 @@ export default function App() {
     if (currentQIndex < shuffledQuestions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
       setSelectedOption(null);
-      setTimeLeft(40);
+      setTimeLeft(40); // 40 SEGUNDOS
       setIsTimeOut(false);
     } else {
       processQuizFinish(newAnswers);
@@ -990,13 +1030,13 @@ export default function App() {
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
     const perc = Math.round((score / shuffledQuestions.length) * 100);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy (válido por 7 dias úteis). Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador.`;
     
     try {
       const explanation = await callGeminiAPI(prompt, true);
       setTutorMsg(explanation);
     } catch(e) {
-      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes (válido por 7 dias úteis)! Continue se capacitando.");
+      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
     } finally {
       setIsTutorLoading(false);
     }
@@ -1016,10 +1056,12 @@ export default function App() {
 
       <style>
         {`
-          body {
+          body, html {
             background-color: #020617;
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
           }
           @keyframes floatUp {
             0% { transform: translateY(110vh) rotate(0deg) scale(1); opacity: 1; }
@@ -1103,15 +1145,17 @@ export default function App() {
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
         <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
         </aside>
 
         <div className="w-full max-w-4xl flex-1 print-container flex flex-col gap-6">
 
           {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print mb-2 shrink-0"></div>
+          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print mb-2 shrink-0 overflow-hidden bg-[#020617] relative z-10">
+            <AdBanner />
+          </div>
 
           {step === 'intro' && (
             <div
@@ -1162,7 +1206,7 @@ export default function App() {
 
           {step === 'form' && (
             <div 
-              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col"
+              className="no-print w-full bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col"
             >
               
               {/* BOTÃO DE VOLTAR - TELA DE CREDENCIAIS */}
@@ -1222,7 +1266,7 @@ export default function App() {
                           disabled={isSmsSending}
                           className="text-[#00AAFF] text-xs font-bold hover:text-white transition-colors underline decoration-dotted disabled:opacity-50"
                         >
-                          {isSmsSending ? 'Reenviando...' : 'Não recebeu o código? Reenviar SMS agora'}
+                          {isSmsSending ? 'Carregando...' : 'Não recebeu o código? Reenviar SMS agora'}
                         </button>
                       )}
                     </div>
@@ -1384,7 +1428,7 @@ export default function App() {
                   className="w-full bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:from-[#00e600] hover:to-[#0099e6] text-[#020617] font-black py-5 px-6 rounded-2xl transition-all flex items-center justify-center gap-3 mt-8 disabled:opacity-50 disabled:cursor-not-allowed text-xl shadow-[0_0_20px_rgba(0,255,0,0.2)]"
                 >
                   {isSmsSending ? (
-                    'Conectando ao Google SMS...'
+                    'Carregando...'
                   ) : isSubmitting ? (
                     'Registrando...'
                   ) : userData.whatsapp.length > 0 && userData.whatsapp.replace(/\D/g, '').length !== 11 ? (
@@ -1401,7 +1445,7 @@ export default function App() {
 
           {step === 'quiz' && (
             <div 
-              className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden"
+              className="no-print w-full bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden"
             >
               {isTimeOut && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
@@ -1543,7 +1587,7 @@ export default function App() {
 
           {step === 'result' && (
             <div 
-              className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
+              className="no-print w-full bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
             >
               <div
                 className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
@@ -1731,7 +1775,7 @@ export default function App() {
           )}
 
           {step === 'summary' && (
-            <div className="bg-white text-slate-900 p-8 md:p-14 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in">
+            <div className="bg-white w-full text-slate-900 p-8 md:p-14 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in">
               <div className="watermark-text">ETX ACADEMY</div>
 
               <div className="no-print fixed bottom-6 right-6 md:top-6 md:bottom-auto flex gap-4 z-50">
@@ -1881,14 +1925,16 @@ export default function App() {
           )}
 
           {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-[#020617] relative z-10">
+            <AdBanner />
+          </div>
         </div>
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
         <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
         </aside>
       </main>
 
