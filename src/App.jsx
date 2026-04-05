@@ -1074,7 +1074,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
           <h1 className="text-5xl font-black tracking-tighter">
-          <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
+          <span className="text-[#00AAFF]">ETX</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
