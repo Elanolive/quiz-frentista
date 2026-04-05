@@ -519,6 +519,8 @@ export default function App() {
   // Estado para Animação Flutuante
   const [feedbackOverlay, setFeedbackOverlay] = useState(null);
 
+  const introCardRef = useRef(null);
+
   // --- Função para o Efeito Visual Interativo (Mouse Move/Tilt + Spotlight) ---
   const handleMouseMoveCard = (e) => {
     const card = e.currentTarget;
@@ -822,7 +824,6 @@ export default function App() {
     if (isCorrect) playAudio('correct_ans');
     else playAudio('wrong_ans');
 
-    // TEMPO DE TRANSIÇÃO REDUZIDO PARA 0.5s (500ms)
     setTimeout(() => {
       setIsAnswering(false);
       
@@ -1073,7 +1074,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
           <h1 className="text-5xl font-black tracking-tighter">
-          <span className="text-[#00AAFF]">ETX</span> <span className="text-slate-100">ACADEMY</span>
+          <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
@@ -1084,12 +1085,19 @@ export default function App() {
       {/* REFORÇO NO LAYOUT: asides idênticos à esquerda e à direita garantem que o meio não fica torto */}
       <main className="flex-grow flex flex-col xl:flex-row items-center xl:items-start justify-center p-4 print:p-0 gap-8 w-full max-w-[1500px] mx-auto">
         
-        {/* ANÚNCIO DESKTOP - ESQUERDA */}
+        {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
         <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
-          {/* INSIRA SEU SCRIPT DE ANÚNCIO AQUI */}
+          <div className="w-full h-[600px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral Esquerdo<br/><span className="text-xs mt-2 opacity-50">(300x600)</span>
+          </div>
         </aside>
 
         <div className="w-full max-w-3xl print-container flex flex-col gap-6">
+
+          {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
+          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/50 rounded-2xl flex items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mb-2">
+            Espaço para Anúncio (Topo)
+          </div>
 
           {step === 'intro' && (
             <div
@@ -1152,6 +1160,24 @@ export default function App() {
                     'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
                 }}
               />
+              
+              {/* BOTÃO DE VOLTAR - TELA DE CREDENCIAIS */}
+              <div className="flex justify-start mb-6 relative z-10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playAudio('click');
+                    if (window.confirm("Atenção: Os dados preenchidos serão perdidos caso voltar. Deseja realmente voltar para a página inicial?")) {
+                      setUserData({ nome: '', email: '', whatsapp: '', nascimento: '', fezCurso: '', qualEscola: '' });
+                      setStep('intro');
+                    }
+                  }}
+                  className="text-[#00AAFF] hover:text-white flex items-center gap-2 font-bold transition-all text-sm bg-[#00AAFF]/10 hover:bg-[#00AAFF]/30 px-4 py-2 rounded-xl"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Voltar para o Início
+                </button>
+              </div>
+
               {showVerification && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#020617]/95 backdrop-blur-md animate-in fade-in zoom-in-95">
                   <div className="bg-slate-900 p-10 rounded-3xl border-2 border-[#00AAFF]/50 shadow-[0_0_60px_rgba(0,170,255,0.2)] max-w-sm w-full text-center m-4 relative overflow-hidden">
@@ -1450,9 +1476,11 @@ export default function App() {
                        if (isCorrectAns) {
                          btnDynamicClasses = 'bg-[#00FF00]/80 border-[#00FF00] text-black shadow-[0_0_20px_#00FF00] animate-pulse';
                        } else {
+                         // Oculta a correta e mostra só a errada a vermelho
                          btnDynamicClasses = 'bg-red-600/80 border-red-500 text-white shadow-[0_0_20px_red]';
                        }
                     } else {
+                       // Oculta as outras para não dar a dica da correta
                        btnDynamicClasses = 'opacity-30 border-slate-800 bg-[#020617] text-slate-500';
                     }
                   } else {
@@ -1864,15 +1892,22 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mt-6">
+            Anúncio Central Inferior<br/><span className="text-xs mt-2 opacity-50">(Responsivo)</span>
+          </div>
         </div>
 
-        {/* ANÚNCIO DESKTOP - DIREITA (Simétrico à esquerda para manter tudo ao centro) */}
+        {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
         <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 min-h-[600px] sticky top-8 no-print">
-           {/* INSIRA SEUS SCRIPTS DE ANÚNCIO (300X250, ETC) AQUI */}
+           <div className="w-full h-[600px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
+            Anúncio<br/>Lateral Direito<br/><span className="text-xs mt-2 opacity-50">(300x600)</span>
+          </div>
         </aside>
       </main>
 
-      <footer className="no-print w-full py-6 bg-[#020617] border-t border-slate-800 text-center mt-auto">
+      <footer className="no-print w-full py-6 bg-[#020617] border-t border-slate-800 text-center mt-auto relative z-20">
         <p className="text-slate-500 text-sm font-medium px-4">
           ETX Academy - Ji-Paraná - RO - Contato/WhatsApp: (69) 9 8119-7373 - Todos os direitos reservados - 2026
         </p>
