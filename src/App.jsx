@@ -294,7 +294,7 @@ const QUESTIONS = [
     ],
     correct: 2,
     explanation:
-      'A norma separa inflamáveis (que geram vapor fácil) de combustíveis (que precisam de mais calor para gerar vapor, como o Diesel). Combustíveis têm ponto de fulgor entre 60°C e 93,3°C.',
+      'A norma separa inflamáveis (que geram vapor fácil) de combustíveis (que precisam de mais calor para vaporizar, como o Diesel). Combustíveis têm ponto de fulgor entre 60°C e 93,3°C.',
   },
   {
     id: 19,
@@ -522,6 +522,7 @@ export default function App() {
   const introCardRef = useRef(null);
 
   // --- Função para o Efeito Visual Interativo (Mouse Move/Tilt + Spotlight) ---
+  // Apenas na tela Intro!
   const handleMouseMoveCard = (e) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
@@ -553,6 +554,15 @@ export default function App() {
 
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
+    
+    // --- ADICIONA TAG DO GOOGLE ADSENSE AUTOMATICAMENTE ---
+    let adsenseMeta = document.querySelector('meta[name="google-adsense-account"]');
+    if (!adsenseMeta) {
+      adsenseMeta = document.createElement('meta');
+      adsenseMeta.name = "google-adsense-account";
+      adsenseMeta.content = "ca-pub-3040128091952429";
+      document.head.appendChild(adsenseMeta);
+    }
   }, []);
 
   // Proteção contra Refresh/Atualização (F5)
@@ -824,6 +834,7 @@ export default function App() {
     if (isCorrect) playAudio('correct_ans');
     else playAudio('wrong_ans');
 
+    // TEMPO DE TRANSIÇÃO REDUZIDO PARA 0.5s (500ms)
     setTimeout(() => {
       setIsAnswering(false);
       
@@ -979,13 +990,13 @@ export default function App() {
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
     const perc = Math.round((score / shuffledQuestions.length) * 100);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy. Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy (válido por 7 dias úteis). Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
     
     try {
       const explanation = await callGeminiAPI(prompt, true);
       setTutorMsg(explanation);
     } catch(e) {
-      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes! Continue se capacitando.");
+      setTutorMsg("Parabéns pela conclusão do Desafio da NR 20! O seu esforço é muito valorizado. A ETX Academy é a escola mais procurada de Ji-Paraná e região por quem busca aprendizado de qualidade. Pela sua dedicação, você tem direito a 10% de desconto nos nossos cursos profissionalizantes (válido por 7 dias úteis)! Continue se capacitando.");
     } finally {
       setIsTutorLoading(false);
     }
@@ -1000,7 +1011,7 @@ export default function App() {
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] relative print:bg-white print:text-black">
+    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black">
       <div id="recaptcha-container"></div>
 
       <style>
@@ -1087,30 +1098,22 @@ export default function App() {
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
         <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
-          </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
-          </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
-          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
         </aside>
 
         <div className="w-full max-w-3xl flex-1 print-container flex flex-col gap-6">
 
           {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/50 rounded-2xl flex items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mb-2 shrink-0">
-            Espaço para Anúncio (Topo)
-          </div>
+          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/20 rounded-2xl no-print mb-2 shrink-0"></div>
 
           {step === 'intro' && (
             <div
               onMouseMove={handleMouseMoveCard}
               onMouseLeave={handleMouseLeaveCard}
               style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
-              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl text-center animate-in fade-in zoom-in relative overflow-hidden group"
+              className="no-print w-full min-h-[500px] flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl text-center animate-in fade-in zoom-in relative overflow-hidden group"
             >
               <div
                 className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
@@ -1153,19 +1156,7 @@ export default function App() {
           )}
 
           {step === 'form' && (
-            <div 
-              onMouseMove={handleMouseMoveCard}
-              onMouseLeave={handleMouseLeaveCard}
-              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
-              className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden group flex flex-col"
-            >
-              <div
-                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
-                style={{
-                  background:
-                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
-                }}
-              />
+            <div className="no-print bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col">
               
               {/* BOTÃO DE VOLTAR - TELA DE CREDENCIAIS */}
               <div className="flex justify-start mb-6 relative z-10 w-full">
@@ -1194,7 +1185,7 @@ export default function App() {
                       Código de Segurança
                     </h3>
                     <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                      O Google enviou um SMS oficial para o número <br />
+                      A ETX Academy enviou um SMS oficial para o número <br />
                       <strong className="text-white text-lg mt-1 block">
                         {userData.whatsapp}
                       </strong>
@@ -1402,19 +1393,7 @@ export default function App() {
           )}
 
           {step === 'quiz' && (
-            <div 
-              onMouseMove={handleMouseMoveCard}
-              onMouseLeave={handleMouseLeaveCard}
-              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
-              className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden group"
-            >
-              <div
-                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
-                style={{
-                  background:
-                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
-                }}
-              />
+            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
               {isTimeOut && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
                   <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500 relative z-50">
@@ -1554,19 +1533,7 @@ export default function App() {
           )}
 
           {step === 'result' && (
-            <div 
-              onMouseMove={handleMouseMoveCard}
-              onMouseLeave={handleMouseLeaveCard}
-              style={{ transform: 'perspective(1000px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))', transition: 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}
-              className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
-            >
-              <div
-                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
-                style={{
-                  background:
-                    'radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(0, 170, 255, 0.08), transparent 40%)',
-                }}
-              />
+            <div className="no-print bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden">
               <div className="text-center mb-10 border-b border-slate-800 pb-10 relative z-10">
                 <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
                   Seu Resultado: <span className="text-[#00FF00]">{score}</span> de {shuffledQuestions.length}
@@ -1733,7 +1700,7 @@ export default function App() {
                 <p className="text-lg font-medium mb-6 text-slate-300 relative z-10">
                   ENTRE EM CONTATO E RESERVE SUA VAGA. <br/>VOCÊ TEM GARANTIDO{' '}
                   <strong className="text-[#00AAFF] text-2xl font-black block mt-2 mb-2">
-                    10% DE DESCONTO
+                    10% DE DESCONTO <span className="text-lg block">(Válido por 7 dias úteis)</span>
                   </strong>{' '}
                   NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO DESTE QUIZ.
                 </p>
@@ -1878,7 +1845,7 @@ export default function App() {
                 <p className="text-lg md:text-2xl font-medium mb-8 leading-relaxed text-slate-300 print:text-slate-800 relative z-10">
                   ENTRE EM CONTATO E RESERVE SUA VAGA. <br/>VOCÊ TEM GARANTIDO{' '}
                   <strong className="text-[#00AAFF] print:text-blue-700 text-3xl font-black block mt-2 mb-2">
-                    10% DE DESCONTO
+                    10% DE DESCONTO <span className="text-lg block">(Válido por 7 dias úteis)</span>
                   </strong>{' '}
                   NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO DESTE QUIZ.
                 </p>
@@ -1900,22 +1867,14 @@ export default function App() {
           )}
 
           {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-3xl flex flex-col items-center justify-center text-slate-700 text-sm font-bold uppercase tracking-widest no-print mt-6 shrink-0">
-            Anúncio Central Inferior<br/><span className="text-xs mt-2 opacity-50">(Responsivo)</span>
-          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-3xl no-print mt-6 shrink-0"></div>
         </div>
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
         <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
-          </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
-          </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-slate-700 font-bold uppercase tracking-widest text-center p-4">
-            Anúncio<br/>Lateral<br/><span className="text-xs mt-2 opacity-50">(300x250)</span>
-          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/20 rounded-2xl"></div>
         </aside>
       </main>
 
