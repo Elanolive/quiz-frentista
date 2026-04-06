@@ -65,34 +65,35 @@ const playAudio = (type) => {
   } catch (err) {}
 };
 
-// --- COMPONENTE DE ANÚNCIOS GOOGLE ADSENSE ---
+// --- COMPONENTE DE ANÚNCIOS GOOGLE ADSENSE DEFINITIVO ---
 const AdBanner = () => {
   const adRef = useRef(null);
 
   useEffect(() => {
-    // Usa um pequeno delay para garantir que o layout foi totalmente desenhado no Vercel
-    const timer = setTimeout(() => {
+    const pushAd = () => {
       if (adRef.current && adRef.current.innerHTML === '') {
-        // Só injeta o anúncio se o bloco estiver VISÍVEL na tela (largura > 0)
-        // Isso bloqueia o erro "No slot size for availableWidth=0" nos telemóveis
-        if (adRef.current.clientWidth > 0 || adRef.current.clientHeight > 0) {
-          try {
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-          } catch (err) {
-            console.log('AdSense Push Error:', err);
-          }
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (err) {
+          console.log('AdSense Push Error:', err);
         }
       }
-    }, 300);
+    };
+    
+    // Pequeno delay garante que a página já carregou completamente o layout
+    const timer = setTimeout(pushAd, 800);
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <ins className="adsbygoogle block w-full h-full min-h-[50px] min-w-[200px]"
-         ref={adRef}
-         data-ad-client="ca-pub-3040128091952429"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
+    <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ minHeight: '100px' }}>
+      <ins className="adsbygoogle"
+           style={{ display: 'block', width: '100%', height: '100%' }}
+           ref={adRef}
+           data-ad-client="ca-pub-3040128091952429"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+    </div>
   );
 };
 
@@ -468,7 +469,7 @@ const callGeminiAPI = async (prompt, isTutorMsg = false) => {
           text: `Você é Eliot, a Inteligência Artificial biotecnológica da escola ETX Academy. Regras obrigatórias:
           1. Baseie toda explicação no conteúdo oficial da norma regulamentadora NR 20.
           2. EVITE citar a FISPQ, a menos que seja estritamente necessário. O foco principal deve ser a NR 20.
-          3. Se o assunto for gases, explique de forma MUITO SIMPLES: GLP (Gás Liquefeito de Petróleo) é o famoso "gás de cozinha", armazenado em estado líquido sob pressão. GNV (Gás Natural Veicular) é outro tipo de combustível que se mantém em estado gasoso sob altíssima pressão. Além disso, por curiosidade, existem outros combustíveis como o biometano, que também é um gás veicular.
+          3. Se o assunto for gases, explique de forma MUITO SIMPLES: GLP (Gás Liquefeito de Petróleo) é o famoso "gás de cozinha", armazenado em estado líquido sob pressão. GNV (Gás Natural Veicular) é outro tipo de combustível que se mantém em estado gasoso sob altíssima pressão. Além disso, por curiosidade, existem outros combustíveis como o biometano, que também é um gás veicular, cite todos os tipos de combustíveis comercialazdos para veiculos por questão de curiosidade.
           4. Seja amigável, direto e encorajador.`,
         },
       ],
@@ -537,6 +538,9 @@ export default function App() {
   const [aiExplanations, setAiExplanations] = useState({});
   const [isAiLoading, setIsAiLoading] = useState({});
 
+  // Layout State for Ads
+  const [isDesktop, setIsDesktop] = useState(true);
+
   // Feedback Instantâneo
   const [isAnswering, setIsAnswering] = useState(false);
 
@@ -586,6 +590,11 @@ export default function App() {
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
     
+    // Detecta tela grande (PC) para renderizar os blocos laterais sem erros do Google AdSense
+    setIsDesktop(window.innerWidth >= 1280);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1280);
+    window.addEventListener('resize', handleResize);
+
     // --- ADICIONA TAG DO GOOGLE ADSENSE AUTOMATICAMENTE ---
     let adsenseMeta = document.querySelector('meta[name="google-adsense-account"]');
     if (!adsenseMeta) {
@@ -603,6 +612,8 @@ export default function App() {
       adsenseScript.crossOrigin = "anonymous";
       document.head.appendChild(adsenseScript);
     }
+
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Proteção contra Refresh/Atualização (F5)
@@ -744,6 +755,13 @@ export default function App() {
       if (v.length > 2) formatted = `(${v.substring(0,2)}) ${v.substring(2)}`;
       if (v.length > 7) formatted = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`;
       setUserData((prev) => ({ ...prev, whatsapp: formatted }));
+    } else if (name === 'nascimento') {
+      const yearPart = value.split('-')[0];
+      if (yearPart && yearPart.length > 4) {
+        setUserData((prev) => ({ ...prev, nascimento: '' }));
+        return;
+      }
+      setUserData((prev) => ({ ...prev, [name]: value }));
     } else {
       setUserData((prev) => ({ ...prev, [name]: value }));
     }
@@ -1030,7 +1048,7 @@ export default function App() {
   const generateTutorMessage = async () => {
     setIsTutorLoading(true);
     const perc = Math.round((score / shuffledQuestions.length) * 100);
-    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy (válido por 7 dias úteis). Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
+    const prompt = `O aluno acabou de concluir o Desafio da NR 20 e teve um aproveitamento de ${perc}%. Vá DIRETO AO PONTO (não faça apresentações). Faça um elogio caloroso a ele, valorizando o seu conhecimento, e afirme claramente que ele tem direito a 10% de desconto nos cursos profissionalizantes da ETX Academy (válido  por 7 dias úteis após realizado esse teste, e só o desconto só é valido para novas matrículas, não vale para matrículas ativas). Lembre-o de que a ETX Academy é a escola mais procurada por empresas e pessoas que realmente querem um aprendizado de qualidade em Ji-Paraná e região. Seja encorajador. Mesmo se ele tiver errado alguma questão, dê uma palavra de incentivo.`;
     
     try {
       const explanation = await callGeminiAPI(prompt, true);
@@ -1140,20 +1158,27 @@ export default function App() {
         </div>
       </header>
 
-      {/* REFORÇO NO LAYOUT: asides idênticos à esquerda e à direita garantem que o meio não fica torto */}
-      <main className="flex-grow flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 print:p-0 gap-4 xl:gap-8 w-full max-w-[1400px] mx-auto">
+      {/* GRID LAYOUT DEFINITIVO: O centro ocupa TODO o espaço disponível e as barras só aparecem no Desktop */}
+      <main className="flex-grow w-full max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-[250px_minmax(0,1fr)_250px] 2xl:grid-cols-[300px_minmax(0,1fr)_300px] gap-6 xl:gap-10 items-start">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
+        <aside className="hidden xl:flex flex-col gap-6 w-full shrink-0 sticky top-8 no-print">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
         </aside>
 
-        <div className="w-full max-w-4xl flex-1 print-container flex flex-col gap-6">
+        {/* COLUNA CENTRAL */}
+        <div className="w-full flex flex-col gap-6 min-w-0 print-container">
 
           {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print mb-2 shrink-0 overflow-hidden bg-[#020617] relative z-10">
+          <div className="w-full min-h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print overflow-hidden bg-[#020617] relative z-10 flex items-center justify-center">
             <AdBanner />
           </div>
 
@@ -1206,7 +1231,7 @@ export default function App() {
 
           {step === 'form' && (
             <div 
-              className="no-print w-full bg-slate-900/80 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col"
+              className="no-print w-full bg-slate-900/80 backdrop-blur-md p-6 sm:p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in slide-in-from-bottom-8 relative overflow-hidden flex flex-col"
             >
               
               {/* BOTÃO DE VOLTAR - TELA DE CREDENCIAIS */}
@@ -1249,6 +1274,14 @@ export default function App() {
                       onChange={(e) =>
                         setInputCode(e.target.value.replace(/\D/g, ''))
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (inputCode.length === 6) {
+                            verifyCode();
+                          }
+                        }
+                      }}
                       autoComplete="one-time-code"
                       className="w-full bg-[#020617] border-2 border-slate-700 text-center text-4xl font-bold tracking-[0.3em] p-5 rounded-2xl text-[#00FF00] mb-6 focus:border-[#00FF00] focus:shadow-[0_0_15px_rgba(0,255,0,0.2)] outline-none transition-all"
                       placeholder="000000"
@@ -1445,11 +1478,11 @@ export default function App() {
 
           {step === 'quiz' && (
             <div 
-              className="no-print w-full bg-slate-900/80 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden"
+              className="no-print w-full bg-slate-900/80 backdrop-blur-xl p-5 sm:p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden"
             >
               {isTimeOut && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/90 backdrop-blur-md animate-in fade-in duration-300">
-                  <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500 relative z-50">
+                  <div className="bg-slate-900 p-10 rounded-3xl border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.3)] flex flex-col items-center text-center mx-4 animate-in zoom-in-50 duration-500 relative z-50 w-full max-w-md">
                     <AlertCircle className="w-24 h-24 text-red-500 mb-6 animate-bounce" />
                     <h3 className="text-4xl font-black text-white mb-4">
                       Tempo Esgotado!
@@ -1459,7 +1492,7 @@ export default function App() {
                     </p>
                     <button
                       onClick={handleTimeOutNext}
-                      className="bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 py-4 px-12 rounded-xl font-black text-lg transition-all transform hover:scale-105 shadow-lg"
+                      className="w-full bg-red-500 hover:bg-red-600 text-white flex justify-center items-center gap-2 py-4 px-8 rounded-xl font-black text-lg transition-all shadow-lg"
                     >
                       {currentQIndex < shuffledQuestions.length - 1
                         ? 'Avançar para a próxima'
@@ -1481,17 +1514,18 @@ export default function App() {
                 ></div>
               </div>
 
-              <div className="flex justify-between items-end mb-10 mt-6 border-b border-slate-800 pb-6 relative z-10">
-                <div className="pr-4">
+              {/* Ajuste perfeito para evitar texto esmagado no telemóvel */}
+              <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-end gap-6 mb-10 mt-6 border-b border-slate-800 pb-6 relative z-10 w-full">
+                <div className="flex-1 pr-0 sm:pr-4">
                   <span className="text-[#00AAFF] font-black tracking-[0.2em] text-xs uppercase mb-3 block">
                     Questão {currentQIndex + 1} de {shuffledQuestions.length}
                   </span>
-                  <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight">
                     {shuffledQuestions[currentQIndex].text}
                   </h3>
                 </div>
                 <div
-                  className={`flex items-center gap-2 font-mono text-3xl px-5 py-3 rounded-xl font-black border-2 transition-colors ${
+                  className={`shrink-0 flex items-center gap-2 font-mono text-2xl sm:text-3xl px-5 py-3 rounded-xl font-black border-2 transition-colors ${
                     timeLeft <= 5
                       ? 'bg-red-500/10 text-red-500 border-red-500/50 animate-pulse'
                       : 'bg-[#020617] border-slate-800 text-[#00FF00]'
@@ -1502,7 +1536,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="space-y-4 relative z-10">
+              <div className="space-y-4 relative z-10 w-full">
                 {shuffledQuestions[currentQIndex].options.map((opt, idx) => {
                   const isSelected = selectedOption === idx;
                   const isCorrectAns = shuffledQuestions[currentQIndex].correct === idx;
@@ -1514,11 +1548,9 @@ export default function App() {
                        if (isCorrectAns) {
                          btnDynamicClasses = 'bg-[#00FF00]/80 border-[#00FF00] text-black shadow-[0_0_20px_#00FF00] animate-pulse';
                        } else {
-                         // Oculta a correta e mostra só a errada a vermelho
                          btnDynamicClasses = 'bg-red-600/80 border-red-500 text-white shadow-[0_0_20px_red]';
                        }
                     } else {
-                       // Oculta as outras para não dar a dica da correta
                        btnDynamicClasses = 'opacity-30 border-slate-800 bg-[#020617] text-slate-500';
                     }
                   } else {
@@ -1532,10 +1564,10 @@ export default function App() {
                       key={idx}
                       onClick={() => handleSelectOption(idx)}
                       disabled={isAnswering}
-                      className={`w-full text-left p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group/btn ${btnDynamicClasses}`}
+                      className={`w-full text-left p-4 sm:p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group/btn ${btnDynamicClasses}`}
                     >
                       <div
-                        className={`w-8 h-8 shrink-0 rounded-full border-2 mt-0.5 flex items-center justify-center transition-colors
+                        className={`w-6 h-6 sm:w-8 sm:h-8 shrink-0 rounded-full border-2 mt-1 sm:mt-0.5 flex items-center justify-center transition-colors
                           ${
                             isAnswering && isSelected ? (isCorrectAns ? 'border-black bg-black' : 'border-white bg-white') :
                             isSelected
@@ -1545,11 +1577,11 @@ export default function App() {
                         `}
                       >
                         {isSelected && (
-                          <div className={`w-3 h-3 rounded-full ${isAnswering && isSelected ? (isCorrectAns ? 'bg-[#00FF00]' : 'bg-red-500') : 'bg-white'}`} />
+                          <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${isAnswering && isSelected ? (isCorrectAns ? 'bg-[#00FF00]' : 'bg-red-500') : 'bg-white'}`} />
                         )}
                       </div>
                       <span
-                        className={`text-lg md:text-xl font-medium leading-snug
+                        className={`text-base sm:text-lg md:text-xl font-medium leading-snug
                         ${
                           isSelected || (isAnswering && isSelected && isCorrectAns)
                             ? 'font-bold'
@@ -1564,20 +1596,20 @@ export default function App() {
                 })}
               </div>
 
-              <div className="mt-10 flex justify-between items-center h-16 relative z-10">
+              <div className="mt-10 flex flex-col sm:flex-row justify-between items-center sm:h-16 relative z-10 w-full gap-4">
                 <span className="text-slate-500 text-sm hidden md:flex items-center gap-2 font-medium">
                   <span className="px-2 py-1 bg-slate-800 rounded text-xs font-mono">ENTER</span> para confirmar
                 </span>
                 {selectedOption !== null && !isAnswering && (
                   <button
                     onClick={triggerInstantFeedback}
-                    className="bg-[#00FF00] hover:bg-[#00e600] text-[#020617] flex items-center gap-3 py-4 px-10 rounded-xl font-black transition-all animate-in slide-in-from-right-8 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] hover:scale-105 ml-auto text-lg"
+                    className="w-full sm:w-auto bg-[#00FF00] hover:bg-[#00e600] text-[#020617] flex items-center justify-center gap-3 py-4 px-10 rounded-xl font-black transition-all animate-in slide-in-from-right-8 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] hover:scale-105 ml-auto text-lg"
                   >
                     Avançar <ChevronRight className="w-6 h-6" />
                   </button>
                 )}
                 {isAnswering && (
-                  <div className="ml-auto flex items-center gap-2 text-[#00FF00] font-bold">
+                  <div className="w-full sm:w-auto ml-auto flex items-center justify-center gap-2 text-[#00FF00] font-bold py-4">
                     Avançando...
                   </div>
                 )}
@@ -1587,11 +1619,8 @@ export default function App() {
 
           {step === 'result' && (
             <div 
-              className="no-print w-full bg-slate-900/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
+              className="no-print w-full bg-slate-900/80 backdrop-blur-xl p-6 sm:p-8 md:p-12 rounded-3xl border border-slate-800 shadow-2xl animate-in zoom-in relative overflow-hidden group"
             >
-              <div
-                className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-500 group-hover:opacity-100"
-              />
               <div className="text-center mb-10 border-b border-slate-800 pb-10 relative z-10">
                 <h2 className="text-4xl md:text-5xl font-black mb-6 text-white tracking-tight">
                   Seu Resultado: <span className="text-[#00FF00]">{score}</span> de {shuffledQuestions.length}
@@ -1603,12 +1632,12 @@ export default function App() {
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-6 h-6" /> Prova concluída!
+                      <CheckCircle className="w-6 h-6" /> Teste concluído!
                     </>
                   )}
                 </div>
 
-                <div className="flex flex-col md:flex-row items-center justify-center gap-5 max-w-4xl mx-auto">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-5 w-full mx-auto">
                   <button
                     onClick={() => {
                       playAudio('click');
@@ -1775,7 +1804,7 @@ export default function App() {
           )}
 
           {step === 'summary' && (
-            <div className="bg-white w-full text-slate-900 p-8 md:p-14 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in">
+            <div className="bg-white w-full text-slate-900 p-6 sm:p-8 md:p-14 rounded-3xl shadow-2xl relative overflow-hidden animate-in fade-in">
               <div className="watermark-text">ETX ACADEMY</div>
 
               <div className="no-print fixed bottom-6 right-6 md:top-6 md:bottom-auto flex gap-4 z-50">
@@ -1830,7 +1859,7 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="space-y-8 relative z-10">
+              <div className="space-y-8 relative z-10 w-full">
                 <h3 className="text-3xl font-black text-slate-900 border-b-2 border-slate-100 pb-4 mb-8">
                   Revisão do Gabarito
                 </h3>
@@ -1845,7 +1874,7 @@ export default function App() {
                   return (
                     <div
                       key={idx}
-                      className="break-inside-avoid bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm print:shadow-none print:border-b print:bg-transparent print:p-4"
+                      className="break-inside-avoid bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm print:shadow-none print:border-b print:bg-transparent print:p-4"
                     >
                       <h4 className="font-bold text-xl text-slate-900 mb-6 leading-relaxed">
                         <span className="text-[#00AAFF] font-black mr-2">{idx + 1}.</span>{' '}
@@ -1887,7 +1916,7 @@ export default function App() {
                 })}
               </div>
 
-              <div className="page-break mt-16 bg-[#020617] text-white print-banner p-12 rounded-[2.5rem] text-center shadow-2xl relative overflow-hidden">
+              <div className="page-break mt-16 bg-[#020617] text-white print-banner p-8 sm:p-12 rounded-[2.5rem] text-center shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-10">
                   <Fuel className="w-48 h-48 text-[#00FF00]" />
                 </div>
@@ -1925,16 +1954,22 @@ export default function App() {
           )}
 
           {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-[#020617] relative z-10">
+          <div className="w-full min-h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-[#020617] relative z-10 flex items-center justify-center">
             <AdBanner />
           </div>
         </div>
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
-        <aside className="hidden lg:flex flex-col gap-4 xl:gap-6 w-[200px] xl:w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10"><AdBanner /></div>
+        <aside className="hidden xl:flex flex-col gap-6 w-[250px] 2xl:w-[300px] shrink-0 sticky top-8 no-print">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
         </aside>
       </main>
 
