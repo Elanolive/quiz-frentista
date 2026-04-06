@@ -590,8 +590,6 @@ export default function App() {
 
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
-    // Forçar a cor de fundo no body de forma definitiva
-    document.body.style.backgroundColor = '#020617';
     
     setIsDesktop(window.innerWidth >= 1300);
     const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
@@ -1089,7 +1087,7 @@ export default function App() {
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black">
       <div id="recaptcha-container"></div>
 
       <style>
@@ -1170,7 +1168,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
           <h1 className="text-5xl font-black tracking-tighter">
-            <span className="text-[#00AAFF]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
+            <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
@@ -1178,25 +1176,21 @@ export default function App() {
         </div>
       </header>
 
-      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: sidebars só em telas maiores que 1300px */}
-      {/* USO DE LARGURAS FIXAS NOS SIDEBARS PARA IMPEDIR QUE O ADSENSE ESMAGUE O CENTRO */}
-      <main className="flex-grow flex flex-col min-[1300px]:flex-row items-center min-[1300px]:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 lg:gap-10 w-full max-w-[1600px] mx-auto">
+      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: O Centro ocupa todo o espaço possível flex-1 max-w-full */}
+      <main className="flex-grow flex flex-col xl:flex-row items-stretch justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 xl:gap-10 w-full max-w-[1800px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden xl:flex flex-col gap-6 w-[250px] min-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          {/* O 3º bloco lateral esquerdo foi removido a pedido do utilizador */}
         </aside>
 
-        {/* COLUNA CENTRAL: AGORA COM FLEX-1 E LARGURA GARANTIDA, OCUPA TODO O ESPAÇO ATÉ MAX-W-5XL */}
-        <div className="w-full max-w-5xl flex-1 print-container flex flex-col gap-6 min-w-0">
-
-          {/* O Anúncio Topo Central foi removido a pedido do utilizador */}
+        {/* COLUNA CENTRAL: COM FLEX-1 E MAX-W-FULL PARA GARANTIR LARGURA TOTAL NO CENTRO */}
+        <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full">
 
           {step === 'intro' && (
             <div
@@ -1221,7 +1215,7 @@ export default function App() {
                 Desafio NR 20
               </h2>
 
-              <p className="text-slate-300 mb-10 max-w-lg mx-auto text-lg leading-relaxed relative z-10 font-medium">
+              <p className="text-slate-300 mb-10 max-w-2xl mx-auto text-lg leading-relaxed relative z-10 font-medium">
                 <strong className="text-[#00AAFF] text-2xl block mb-3 font-black">
                   Teste os seus conhecimentos sobre inflamáveis e segurança <br className="hidden md:block"/>
                   <span className="text-[#00FF00] font-black">(NR20 para Frentistas).</span>
@@ -1530,7 +1524,6 @@ export default function App() {
                 ></div>
               </div>
 
-              {/* Ajuste perfeito para evitar texto esmagado no telemóvel */}
               <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-end gap-6 mb-10 mt-6 border-b border-slate-800 pb-6 relative z-10 w-full">
                 <div className="flex-1 pr-0 sm:pr-4">
                   <span className="text-[#00AAFF] font-black tracking-[0.2em] text-xs uppercase mb-3 block">
@@ -1974,17 +1967,21 @@ export default function App() {
             </div>
           )}
 
+          {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
+          <div className="w-full min-h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
+            <AdBanner />
+          </div>
         </div>
 
-        {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
+
+        {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
+        <aside className="hidden xl:flex flex-col gap-6 w-[250px] min-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          {/* O 3º bloco lateral direito foi removido a pedido do utilizador */}
         </aside>
       </main>
 
