@@ -652,6 +652,24 @@ export default function App() {
         `;
         document.head.appendChild(gTagConfig);
       }
+
+      // --- META PIXEL CODE ---
+      if (typeof window !== 'undefined' && !window.fbq) {
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        window.fbq('init', '878694709798769');
+        window.fbq('track', 'PageView');
+
+        const noscript = document.createElement('noscript');
+        noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=878694709798769&ev=PageView&noscript=1" />`;
+        document.head.appendChild(noscript);
+      }
     }
   }, [cookiesAccepted]);
 
@@ -1152,25 +1170,19 @@ export default function App() {
       {/* AVISO DE COOKIES/PRIVACIDADE FLUTUANTE NO RODAPÉ */}
       {!cookiesAccepted && (
         <div className="fixed bottom-0 left-0 right-0 z-[999] bg-[#020617] border-t border-slate-800 p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] no-print">
-          <div className="flex flex-col md:flex-row items-center gap-6 max-w-5xl mx-auto w-full">
-            <div className="text-[#00FFFF] mt-1 shrink-0 hidden sm:block">
-              <Info className="w-10 h-10" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-white font-black text-xl mb-2 flex items-center gap-2">
-                <Info className="w-6 h-6 text-[#00FFFF] sm:hidden" />
-                Aviso de Privacidade e Cookies
-              </h4>
-              <p className="text-slate-400 text-sm md:text-base leading-relaxed">
-                Utilizamos cookies e tecnologias semelhantes (como o Meta/Google Pixel) para melhorar a sua experiência, analisar o tráfego do site e personalizar anúncios. Ao continuar a usar o nosso site, você concorda com a recolha do seu endereço IP e dados de localização aproximada para estes fins analíticos e publicitários, de acordo com as diretrizes da LGPD/GDPR.
-              </p>
-            </div>
+          <div className="flex flex-col items-center gap-4 max-w-4xl mx-auto w-full text-center">
             <button
               onClick={handleAcceptCookies}
-              className="w-full md:w-auto shrink-0 bg-[#00FFFF] hover:bg-[#00e6e6] text-[#020617] font-black px-8 py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(0,255,255,0.3)] hover:scale-105"
+              className="w-full md:w-2/3 lg:w-1/2 bg-[#00FFFF] hover:bg-[#00e6e6] text-[#020617] font-black px-8 py-4 sm:py-5 rounded-2xl transition-all shadow-[0_0_20px_rgba(0,255,255,0.3)] hover:scale-105 text-xl sm:text-2xl"
             >
               Aceitar e Continuar
             </button>
+            <p className="text-white font-bold text-[10px] sm:text-sm tracking-wider uppercase whitespace-normal sm:whitespace-nowrap">
+              Para navegar no site e participar do quiz você precisa aceitar os termos.
+            </p>
+            <p className="text-slate-400 text-[9px] sm:text-[11px] leading-snug max-w-5xl">
+              Utilizamos cookies e tecnologias semelhantes (como o Meta/Google Pixel e outros) para melhorar a sua experiência, analisar o tráfego do site e personalizar anúncios. Ao continuar a usar o nosso site, você concorda com a recolha do IP do dispositivo usado para acesso e dados de localização aproximada para estes fins analíticos e publicitários, de acordo com as diretrizes da LGPD.
+            </p>
           </div>
         </div>
       )}
