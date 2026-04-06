@@ -66,32 +66,57 @@ const playAudio = (type) => {
   } catch (err) {}
 };
 
-// --- COMPONENTE DE ANÚNCIOS GOOGLE ADSENSE DEFINITIVO ---
-const AdBanner = () => {
+// --- COMPONENTES DE ANÚNCIOS À PROVA DE ERROS ---
+const SidebarAd = () => {
   const adRef = useRef(null);
 
   useEffect(() => {
     const pushAd = () => {
       if (adRef.current && adRef.current.innerHTML === '') {
-        // Apenas tenta injetar o anúncio se a caixa tiver largura real no ecrã (evita o erro do Vercel)
-        if (adRef.current.clientWidth > 0) {
-          try {
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-          } catch (err) {
-            console.log('AdSense Push Error:', err);
-          }
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (err) {
+          console.log('AdSense Push Error:', err);
         }
       }
     };
-    
     const timer = setTimeout(pushAd, 1000);
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-transparent">
+    <div className="w-[300px] h-[250px] flex items-center justify-center overflow-hidden bg-slate-900/10 rounded-2xl border border-slate-800/30 shrink-0">
+      {/* Dimensões rígidas bloqueiam o AdSense de esmagar o site */}
       <ins className="adsbygoogle"
-           style={{ display: 'block', width: '100%', height: '100%', minHeight: '100px' }}
+           style={{ display: 'inline-block', width: '300px', height: '250px' }}
+           ref={adRef}
+           data-ad-client="ca-pub-3040128091952429"
+           data-full-width-responsive="false"></ins>
+    </div>
+  );
+};
+
+const BottomAd = () => {
+  const adRef = useRef(null);
+
+  useEffect(() => {
+    const pushAd = () => {
+      if (adRef.current && adRef.current.innerHTML === '') {
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (err) {
+          console.log('AdSense Push Error:', err);
+        }
+      }
+    };
+    const timer = setTimeout(pushAd, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="w-full min-h-[150px] flex items-center justify-center overflow-hidden bg-slate-900/10 rounded-3xl border border-slate-800/30 mt-8">
+      <ins className="adsbygoogle"
+           style={{ display: 'block', width: '100%', height: '100%' }}
            ref={adRef}
            data-ad-client="ca-pub-3040128091952429"
            data-ad-format="auto"
@@ -602,8 +627,8 @@ export default function App() {
     // Forçar a cor de fundo no body de forma definitiva
     document.body.style.backgroundColor = '#020617';
     
-    setIsDesktop(window.innerWidth >= 1300);
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
+    setIsDesktop(window.innerWidth >= 1280);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1280);
     window.addEventListener('resize', handleResize);
 
     // Verificar consentimento de cookies prévio
@@ -1236,20 +1261,16 @@ export default function App() {
       </header>
 
       {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: O Centro ocupa todo o espaço possível flex-1 max-w-full */}
-      <main className="flex-grow flex flex-col xl:flex-row items-stretch justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 xl:gap-10 w-full max-w-[1800px] mx-auto">
+      <main className="flex-grow flex flex-col xl:flex-row items-center xl:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 xl:gap-10 w-full max-w-[1400px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
+        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 sticky top-8 no-print">
+          <SidebarAd />
+          <SidebarAd />
         </aside>
 
-        {/* COLUNA CENTRAL: COM FLEX-1 E MAX-W-FULL PARA GARANTIR LARGURA TOTAL NO CENTRO */}
-        <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full">
+        {/* COLUNA CENTRAL: COM FLEX-1 E MAX-W-4XL PARA GARANTIR LARGURA TOTAL NO CENTRO */}
+        <div className="w-full flex-1 max-w-4xl print-container flex flex-col gap-6 min-w-0">
 
           {step === 'intro' && (
             <div
@@ -2026,16 +2047,16 @@ export default function App() {
             </div>
           )}
 
+          {/* ANÚNCIO RODAPÉ CENTRAL */}
+          <div className="w-full min-h-[150px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
+            <BottomAd />
+          </div>
         </div>
 
-        {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
+        {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
+        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 sticky top-8 no-print">
+          <SidebarAd />
+          <SidebarAd />
         </aside>
       </main>
 
