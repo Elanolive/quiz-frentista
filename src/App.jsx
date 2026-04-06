@@ -1151,7 +1151,7 @@ export default function App() {
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
-    <div className="min-h-screen flex flex-col font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black overflow-x-hidden">
       <div id="recaptcha-container"></div>
 
       <style>
@@ -1260,17 +1260,17 @@ export default function App() {
         </div>
       </header>
 
-      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: O Centro ocupa todo o espaço possível flex-1 max-w-full */}
-      <main className="flex-grow flex flex-col xl:flex-row items-center xl:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 xl:gap-10 w-full max-w-[1400px] mx-auto">
+      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: sidebars limitados, centro flexível */}
+      <main className="flex-grow flex flex-col min-[1300px]:flex-row items-center min-[1300px]:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 lg:gap-10 w-full max-w-[1600px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[300px] min-w-[300px] max-w-[300px] shrink-0 sticky top-8 no-print">
           <SidebarAd />
           <SidebarAd />
         </aside>
 
-        {/* COLUNA CENTRAL: COM FLEX-1 E MAX-W-4XL PARA GARANTIR LARGURA TOTAL NO CENTRO */}
-        <div className="w-full flex-1 max-w-4xl print-container flex flex-col gap-6 min-w-0">
+        {/* COLUNA CENTRAL: COM FLEX-1 PARA GARANTIR LARGURA TOTAL NO CENTRO */}
+        <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full">
 
           {step === 'intro' && (
             <div
@@ -1609,7 +1609,7 @@ export default function App() {
                   <span className="text-[#00AAFF] font-black tracking-[0.2em] text-xs uppercase mb-3 block">
                     Questão {currentQIndex + 1} de {shuffledQuestions.length}
                   </span>
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight break-words">
                     {shuffledQuestions[currentQIndex].text}
                   </h3>
                 </div>
@@ -1672,7 +1672,7 @@ export default function App() {
                         )}
                       </div>
                       <span
-                        className={`text-base sm:text-lg md:text-xl font-medium leading-snug
+                        className={`text-base sm:text-lg md:text-xl font-medium leading-snug break-words
                         ${
                           isSelected || (isAnswering && isSelected && isCorrectAns)
                             ? 'font-bold'
@@ -2054,7 +2054,7 @@ export default function App() {
         </div>
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[300px] min-w-[300px] max-w-[300px] shrink-0 sticky top-8 no-print">
           <SidebarAd />
           <SidebarAd />
         </aside>
