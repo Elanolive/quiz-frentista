@@ -114,7 +114,7 @@ const BottomAd = () => {
   }, []);
 
   return (
-    <div className="w-full min-h-[150px] flex items-center justify-center overflow-hidden bg-slate-900/10 rounded-3xl border border-slate-800/30 mt-8">
+    <div className="w-full min-h-[150px] flex items-center justify-center overflow-hidden bg-slate-900/10 rounded-3xl border border-slate-800/30 mt-8 max-w-full min-w-0">
       <ins className="adsbygoogle"
            style={{ display: 'block', width: '100%', height: '100%' }}
            ref={adRef}
@@ -627,8 +627,8 @@ export default function App() {
     // Forçar a cor de fundo no body de forma definitiva
     document.body.style.backgroundColor = '#020617';
     
-    setIsDesktop(window.innerWidth >= 1280);
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1280);
+    setIsDesktop(window.innerWidth >= 1300);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
     window.addEventListener('resize', handleResize);
 
     // Verificar consentimento de cookies prévio
@@ -1260,17 +1260,17 @@ export default function App() {
         </div>
       </header>
 
-      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: sidebars limitados, centro flexível */}
-      <main className="flex-grow flex flex-col min-[1300px]:flex-row items-center min-[1300px]:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 lg:gap-10 w-full max-w-[1600px] mx-auto">
+      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: sidebars limitados, centro flexível e expandido */}
+      <main className="flex-grow flex flex-col min-[1300px]:flex-row items-center min-[1300px]:items-start justify-between p-4 sm:p-6 lg:p-8 print:p-0 gap-6 lg:gap-10 w-full max-w-[1800px] mx-auto overflow-hidden">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[300px] min-w-[300px] max-w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
           <SidebarAd />
           <SidebarAd />
         </aside>
 
-        {/* COLUNA CENTRAL: COM FLEX-1 PARA GARANTIR LARGURA TOTAL NO CENTRO */}
-        <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full">
+        {/* COLUNA CENTRAL: COM FLEX-1 PARA GARANTIR LARGURA TOTAL NO CENTRO, LIVRE DE TRAVÕES MAX-W */}
+        <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full overflow-hidden">
 
           {step === 'intro' && (
             <div
@@ -1885,6 +1885,9 @@ export default function App() {
                   </strong>{' '}
                   NOS NOSSOS CURSOS PROFISSIONALIZANTES POR TER PARTICIPADO DESTE QUIZ.
                 </p>
+                <p className="text-base font-bold mb-10 text-slate-400 relative z-10">
+                  CLIQUE NO NÚMERO DE WHATSAPP ABAIXO PARA SOLICITAR O SEU BENEFÍCIO ANTES QUE O PRAZO DE 7 DIAS TERMINE.
+                </p>
                 <a
                   href="https://wa.me/5569981197373?text=Ol%C3%A1%21%20Acabei%20de%20realizar%20o%20Desafio%20Avaliativo%20da%20NR%2020%20e%20gostaria%20de%20saber%20em%20quais%20cursos%20posso%20aplicar%20o%20meu%20benef%C3%ADcio%20de%2010%25%20de%20desconto."
                   target="_blank"
@@ -2032,7 +2035,7 @@ export default function App() {
                 </p>
 
                 <p className="text-base font-bold mb-10 text-slate-400 print:text-slate-600 relative z-10">
-                  GUARDE SEU RESUMO E APRESENTE NA ETX PARA GARANTIR SEU DESCONTO (Até 7 dias úteis).
+                  CLIQUE NO NÚMERO DE WHATSAPP ABAIXO PARA SOLICITAR O SEU BENEFÍCIO ANTES QUE O PRAZO DE 7 DIAS TERMINE.
                 </p>
 
                 <a
@@ -2048,7 +2051,7 @@ export default function App() {
           )}
 
           {/* ANÚNCIO RODAPÉ CENTRAL */}
-          <div className="w-full min-h-[150px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
+          <div className="w-full min-h-[150px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 overflow-hidden bg-transparent relative z-10 flex items-center justify-center max-w-full min-w-0">
             <BottomAd />
           </div>
         </div>
