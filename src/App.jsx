@@ -70,42 +70,27 @@ const AdBanner = () => {
   const adRef = useRef(null);
 
   useEffect(() => {
-    let timeoutId;
-    
-    // O IntersectionObserver garante que o Google AdSense SÓ tenta injetar o anúncio 
-    // se o espaço estiver fisicamente visível na tela e com largura > 0.
-    // Isto resolve permanentemente o erro "No slot size for availableWidth=0" no Vercel.
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        timeoutId = setTimeout(() => {
-          if (adRef.current && adRef.current.innerHTML === '') {
-            if (adRef.current.clientWidth > 0 && adRef.current.clientHeight > 0) {
-              try {
-                (window.adsbygoogle = window.adsbygoogle || []).push({});
-              } catch (err) {
-                console.log('AdSense Push Error:', err);
-              }
-            }
+    const pushAd = () => {
+      if (adRef.current && adRef.current.innerHTML === '') {
+        // Apenas tenta injetar o anúncio se a caixa tiver largura real no ecrã (evita o erro do Vercel)
+        if (adRef.current.clientWidth > 0) {
+          try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+          } catch (err) {
+            console.log('AdSense Push Error:', err);
           }
-        }, 200); // pequeno atraso para estabilidade do layout
-        observer.disconnect(); // Desliga o observador após a primeira injeção
+        }
       }
-    });
-
-    if (adRef.current) {
-      observer.observe(adRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-      if (timeoutId) clearTimeout(timeoutId);
     };
+    
+    const timer = setTimeout(pushAd, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-transparent" style={{ minHeight: '100px' }}>
+    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-transparent">
       <ins className="adsbygoogle"
-           style={{ display: 'block', width: '100%', height: '100%' }}
+           style={{ display: 'block', width: '100%', height: '100%', minHeight: '100px' }}
            ref={adRef}
            data-ad-client="ca-pub-3040128091952429"
            data-ad-format="auto"
@@ -605,6 +590,8 @@ export default function App() {
 
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
+    // Forçar a cor de fundo no body de forma definitiva
+    document.body.style.backgroundColor = '#020617';
     
     setIsDesktop(window.innerWidth >= 1300);
     const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
@@ -613,19 +600,19 @@ export default function App() {
     // --- INJEÇÃO DA GOOGLE TAG DO ANALYTICS (G-R5R1WW3QRL) ---
     let gtScript1 = document.querySelector('script[src*="G-R5R1WW3QRL"]');
     if (!gtScript1) {
-      gtScript1 = document.createElement('script');
-      gtScript1.src = "https://www.googletagmanager.com/gtag/js?id=G-R5R1WW3QRL";
-      gtScript1.async = true;
-      document.head.appendChild(gtScript1);
+      const gTagScript = document.createElement('script');
+      gTagScript.src = "https://www.googletagmanager.com/gtag/js?id=G-R5R1WW3QRL";
+      gTagScript.async = true;
+      document.head.appendChild(gTagScript);
 
-      const gtScript2 = document.createElement('script');
-      gtScript2.innerHTML = `
+      const gTagConfig = document.createElement('script');
+      gTagConfig.innerHTML = `
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-R5R1WW3QRL');
       `;
-      document.head.appendChild(gtScript2);
+      document.head.appendChild(gTagConfig);
     }
 
     // --- ADICIONA TAG DO GOOGLE ADSENSE ---
@@ -789,6 +776,7 @@ export default function App() {
       if (v.length > 7) formatted = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7)}`;
       setUserData((prev) => ({ ...prev, whatsapp: formatted }));
     } else if (name === 'nascimento') {
+      // Se digitar 5 números no ano, zera para corrigir
       const yearPart = value.split('-')[0];
       if (yearPart && yearPart.length > 4) {
         setUserData((prev) => ({ ...prev, nascimento: '' }));
@@ -1101,7 +1089,7 @@ export default function App() {
   const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
-    <div className="min-h-screen flex flex-col font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black">
+    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 font-sans selection:bg-[#00FF00] selection:text-[#020617] relative w-full print:bg-white print:text-black">
       <div id="recaptcha-container"></div>
 
       <style>
@@ -1191,28 +1179,24 @@ export default function App() {
       </header>
 
       {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: sidebars só em telas maiores que 1300px */}
+      {/* USO DE LARGURAS FIXAS NOS SIDEBARS PARA IMPEDIR QUE O ADSENSE ESMAGUE O CENTRO */}
       <main className="flex-grow flex flex-col min-[1300px]:flex-row items-center min-[1300px]:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 lg:gap-10 w-full max-w-[1600px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] 2xl:w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
+          {/* O 3º bloco lateral esquerdo foi removido a pedido do utilizador */}
         </aside>
 
-        {/* COLUNA CENTRAL: AGORA COM FLEX-1 E LARGURA GARANTIDA, OCUPA TODO O ESPAÇO ATÉ MAX-W-4XL */}
-        <div className="w-full max-w-4xl flex-1 print-container flex flex-col gap-6 min-w-[300px]">
+        {/* COLUNA CENTRAL: AGORA COM FLEX-1 E LARGURA GARANTIDA, OCUPA TODO O ESPAÇO ATÉ MAX-W-5XL */}
+        <div className="w-full max-w-5xl flex-1 print-container flex flex-col gap-6 min-w-0">
 
-          {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full min-h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
-            <AdBanner />
-          </div>
+          {/* O Anúncio Topo Central foi removido a pedido do utilizador */}
 
           {step === 'intro' && (
             <div
@@ -1240,7 +1224,7 @@ export default function App() {
               <p className="text-slate-300 mb-10 max-w-lg mx-auto text-lg leading-relaxed relative z-10 font-medium">
                 <strong className="text-[#00AAFF] text-2xl block mb-3 font-black">
                   Teste os seus conhecimentos sobre inflamáveis e segurança <br className="hidden md:block"/>
-                  <span className="text-[#00FF00]">(NR20 para Frentistas).</span>
+                  <span className="text-[#00FF00] font-black">(NR20 para Frentistas).</span>
                 </strong>
                 Ao final, terá uma revisão guiada pela nossa{' '}
                 <span className="text-[#00AAFF] font-bold">
@@ -1669,7 +1653,7 @@ export default function App() {
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-6 h-6" /> Teste concluído!
+                      <CheckCircle className="w-6 h-6" /> Prova concluída!
                     </>
                   )}
                 </div>
@@ -1819,7 +1803,7 @@ export default function App() {
                   <Fuel className="w-40 h-40 text-[#00FF00]" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-black mb-6 uppercase tracking-tight relative z-10 leading-tight">
-                  <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-[#00FF00]">ACADEMY</span> <br/><span className="text-white text-xl md:text-2xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
+                  <span className="text-[#00AAFF]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-[#00FF00]">ACADEMY</span> <br/><span className="text-white text-xl md:text-2xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
                 </h2>
                 <p className="text-lg font-medium mb-6 text-slate-300 relative z-10">
                   ENTRE EM CONTATO E RESERVE SUA VAGA. <br/>VOCÊ TEM GARANTIDO{' '}
@@ -1832,9 +1816,9 @@ export default function App() {
                   href="https://wa.me/5569981197373?text=Ol%C3%A1%21%20Acabei%20de%20realizar%20o%20Desafio%20Avaliativo%20da%20NR%2020%20e%20gostaria%20de%20saber%20em%20quais%20cursos%20posso%20aplicar%20o%20meu%20benef%C3%ADcio%20de%2010%25%20de%20desconto."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:scale-105 transition-transform text-[#020617] font-black text-xl md:text-3xl px-8 py-5 rounded-2xl items-center justify-center gap-4 relative z-10 shadow-[0_0_20px_rgba(0,255,0,0.3)] no-underline"
+                  className="inline-flex bg-gradient-to-r from-[#00FF00] to-[#00AAFF] hover:scale-105 transition-transform text-[#020617] font-black text-xl md:text-3xl px-8 py-5 rounded-2xl items-center justify-center gap-4 relative z-10 shadow-[0_0_30px_rgba(0,255,0,0.3)] no-underline"
                 >
-                  <Phone className="w-8 h-8 fill-current" /> (69) 9 8119-7373
+                  <Phone className="w-10 h-10 fill-current" /> (69) 9 8119-7373
                 </a>
               </div>
             </div>
@@ -1886,7 +1870,7 @@ export default function App() {
 
               <div className="no-print text-center mb-12 pb-8 border-b-2 border-slate-100">
                  <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">
-                    <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-900">ACADEMY</span>
+                    <span className="text-[#00AAFF]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-900">ACADEMY</span>
                   </h1>
                 <h2 className="text-2xl font-black text-slate-900 mt-6 mb-2">
                   Seu Resumo Oficial
@@ -1963,7 +1947,7 @@ export default function App() {
                 </div>
 
                 <h2 className="text-3xl md:text-4xl font-black mb-8 uppercase tracking-tight relative z-10 leading-tight">
-                  <span className="text-[#00FF00] print:text-green-700">ET</span><span className="text-[#00AAFF] print:text-blue-700">X</span> <span className="text-[#00FF00] print:text-green-700">ACADEMY</span> <br/><span className="text-white text-2xl md:text-3xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
+                  <span className="text-[#00AAFF] print:text-green-700">ET</span><span className="text-[#00AAFF] print:text-blue-700">X</span> <span className="text-[#00FF00] print:text-green-700">ACADEMY</span> <br/><span className="text-white text-2xl md:text-3xl font-bold">A ESCOLA MAIS PROCURADA DA REGIÃO</span>
                 </h2>
 
                 <p className="text-lg md:text-2xl font-medium mb-8 leading-relaxed text-slate-300 print:text-slate-800 relative z-10">
@@ -1990,23 +1974,17 @@ export default function App() {
             </div>
           )}
 
-          {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full min-h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
-            <AdBanner />
-          </div>
         </div>
 
-        {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
-        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] 2xl:w-[300px] shrink-0 sticky top-8 no-print">
+        {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
+          {/* O 3º bloco lateral direito foi removido a pedido do utilizador */}
         </aside>
       </main>
 
