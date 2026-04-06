@@ -17,6 +17,7 @@ import {
   FileText,
   Download,
   Share2,
+  Info,
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -519,6 +520,9 @@ export default function App() {
     qualEscola: '',
   });
   const [aceitouTermos, setAceitouTermos] = useState(true);
+  
+  // --- COOKIES E PRIVACIDADE ---
+  const [cookiesAccepted, setCookiesAccepted] = useState(false);
 
   // SMS Verification Firebase
   const [showVerification, setShowVerification] = useState(false);
@@ -584,6 +588,11 @@ export default function App() {
     card.style.setProperty('--rotate-y', `0deg`);
   };
 
+  const handleAcceptCookies = () => {
+    localStorage.setItem('cookiesConsent', 'true');
+    setCookiesAccepted(true);
+  };
+
   // --- Função para calcular a Data Atual (Bloqueio Calendário) ---
   const todayData = new Date();
   const maxDateString = `${todayData.getFullYear()}-${String(todayData.getMonth() + 1).padStart(2, '0')}-${String(todayData.getDate()).padStart(2, '0')}`;
@@ -597,25 +606,13 @@ export default function App() {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
     window.addEventListener('resize', handleResize);
 
-    // --- INJEÇÃO DA GOOGLE TAG DO ANALYTICS (G-R5R1WW3QRL) ---
-    let gtScript1 = document.querySelector('script[src*="G-R5R1WW3QRL"]');
-    if (!gtScript1) {
-      const gTagScript = document.createElement('script');
-      gTagScript.src = "https://www.googletagmanager.com/gtag/js?id=G-R5R1WW3QRL";
-      gTagScript.async = true;
-      document.head.appendChild(gTagScript);
-
-      const gTagConfig = document.createElement('script');
-      gTagConfig.innerHTML = `
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-R5R1WW3QRL');
-      `;
-      document.head.appendChild(gTagConfig);
+    // Verificar consentimento de cookies prévio
+    const accepted = localStorage.getItem('cookiesConsent');
+    if (accepted === 'true') {
+      setCookiesAccepted(true);
     }
 
-    // --- ADICIONA TAG DO GOOGLE ADSENSE ---
+    // --- ADICIONA TAG DO GOOGLE ADSENSE (O AdSense cuida das próprias regras de LGPD) ---
     let adsenseMeta = document.querySelector('meta[name="google-adsense-account"]');
     if (!adsenseMeta) {
       adsenseMeta = document.createElement('meta');
@@ -635,6 +632,28 @@ export default function App() {
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // --- INJEÇÃO DA GOOGLE TAG (ANALÍTICA E PIXELS) APENAS APÓS ACEITAR COOKIES ---
+  useEffect(() => {
+    if (cookiesAccepted) {
+      let gtScript1 = document.querySelector('script[src*="G-R5R1WW3QRL"]');
+      if (!gtScript1) {
+        const gTagScript = document.createElement('script');
+        gTagScript.src = "https://www.googletagmanager.com/gtag/js?id=G-R5R1WW3QRL";
+        gTagScript.async = true;
+        document.head.appendChild(gTagScript);
+
+        const gTagConfig = document.createElement('script');
+        gTagConfig.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-R5R1WW3QRL');
+        `;
+        document.head.appendChild(gTagConfig);
+      }
+    }
+  }, [cookiesAccepted]);
 
   // Proteção contra Refresh/Atualização (F5)
   useEffect(() => {
@@ -1130,6 +1149,32 @@ export default function App() {
         `}
       </style>
 
+      {/* AVISO DE COOKIES/PRIVACIDADE FLUTUANTE NO RODAPÉ */}
+      {!cookiesAccepted && (
+        <div className="fixed bottom-0 left-0 right-0 z-[999] bg-[#020617] border-t border-slate-800 p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] no-print">
+          <div className="flex flex-col md:flex-row items-center gap-6 max-w-5xl mx-auto w-full">
+            <div className="text-[#00FFFF] mt-1 shrink-0 hidden sm:block">
+              <Info className="w-10 h-10" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-white font-black text-xl mb-2 flex items-center gap-2">
+                <Info className="w-6 h-6 text-[#00FFFF] sm:hidden" />
+                Aviso de Privacidade e Cookies
+              </h4>
+              <p className="text-slate-400 text-sm md:text-base leading-relaxed">
+                Utilizamos cookies e tecnologias semelhantes (como o Meta/Google Pixel) para melhorar a sua experiência, analisar o tráfego do site e personalizar anúncios. Ao continuar a usar o nosso site, você concorda com a recolha do seu endereço IP e dados de localização aproximada para estes fins analíticos e publicitários, de acordo com as diretrizes da LGPD/GDPR.
+              </p>
+            </div>
+            <button
+              onClick={handleAcceptCookies}
+              className="w-full md:w-auto shrink-0 bg-[#00FFFF] hover:bg-[#00e6e6] text-[#020617] font-black px-8 py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(0,255,255,0.3)] hover:scale-105"
+            >
+              Aceitar e Continuar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* OVERLAY DE FEEDBACK ANIMADO E SUSPENSO (VIBRANTE) */}
       {feedbackOverlay && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-300 pointer-events-none">
@@ -1186,13 +1231,13 @@ export default function App() {
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          {/* REMOVIDO: Segundo anúncio da lateral esquerda para testar o layout */}
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
         </aside>
 
         {/* COLUNA CENTRAL: COM FLEX-1 E MAX-W-FULL PARA GARANTIR LARGURA TOTAL NO CENTRO */}
         <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full">
-
-          {/* REMOVIDO: Anúncio do topo central para testar o layout */}
 
           {step === 'intro' && (
             <div
@@ -1969,19 +2014,16 @@ export default function App() {
             </div>
           )}
 
-          {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full min-h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
-            <AdBanner />
-          </div>
         </div>
 
-
-        {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
+        {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
         <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          {/* REMOVIDO: Segundo anúncio da lateral direita para testar o layout */}
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
+            {isDesktop && <AdBanner />}
+          </div>
         </aside>
       </main>
 
