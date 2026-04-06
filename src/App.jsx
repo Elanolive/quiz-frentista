@@ -70,27 +70,42 @@ const AdBanner = () => {
   const adRef = useRef(null);
 
   useEffect(() => {
-    const pushAd = () => {
-      if (adRef.current && adRef.current.innerHTML === '') {
-        // Apenas tenta injetar o anúncio se a caixa tiver largura real no ecrã (evita o erro do Vercel)
-        if (adRef.current.clientWidth > 0) {
-          try {
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-          } catch (err) {
-            console.log('AdSense Push Error:', err);
-          }
-        }
-      }
-    };
+    let timeoutId;
     
-    const timer = setTimeout(pushAd, 1000);
-    return () => clearTimeout(timer);
+    // O IntersectionObserver garante que o Google AdSense SÓ tenta injetar o anúncio 
+    // se o espaço estiver fisicamente visível na tela e com largura > 0.
+    // Isto resolve permanentemente o erro "No slot size for availableWidth=0" no Vercel.
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        timeoutId = setTimeout(() => {
+          if (adRef.current && adRef.current.innerHTML === '') {
+            if (adRef.current.clientWidth > 0 && adRef.current.clientHeight > 0) {
+              try {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+              } catch (err) {
+                console.log('AdSense Push Error:', err);
+              }
+            }
+          }
+        }, 200); // pequeno atraso para estabilidade do layout
+        observer.disconnect(); // Desliga o observador após a primeira injeção
+      }
+    });
+
+    if (adRef.current) {
+      observer.observe(adRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-[#020617]">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-transparent" style={{ minHeight: '100px' }}>
       <ins className="adsbygoogle"
-           style={{ display: 'block', width: '100%', height: '100%', minHeight: '100px' }}
+           style={{ display: 'block', width: '100%', height: '100%' }}
            ref={adRef}
            data-ad-client="ca-pub-3040128091952429"
            data-ad-format="auto"
@@ -403,7 +418,7 @@ const QUESTIONS = [
     text: 'O que representa o LII (Limite Inferior de Inflamabilidade)?',
     options: [
       'a) A máxima concentração de gás para queimar.',
-      'b) A concentração "ideal" de oxigênio.',
+      'b) A concentration "ideal" de oxigênio.',
       'c) A mínima concentração de gás no ar capaz de provocar a combustão com fonte de ignição.',
       'd) A temperatura de congelamento do combustível.',
     ],
@@ -591,11 +606,11 @@ export default function App() {
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
     
-    setIsDesktop(window.innerWidth >= 1280);
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1280);
+    setIsDesktop(window.innerWidth >= 1300);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
     window.addEventListener('resize', handleResize);
 
-    // --- INJEÇÃO DA GOOGLE TAG (G-R5R1WW3QRL) ---
+    // --- INJEÇÃO DA GOOGLE TAG DO ANALYTICS (G-R5R1WW3QRL) ---
     let gtScript1 = document.querySelector('script[src*="G-R5R1WW3QRL"]');
     if (!gtScript1) {
       gtScript1 = document.createElement('script');
@@ -1167,7 +1182,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
           <h1 className="text-5xl font-black tracking-tighter">
-            <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
+            <span className="text-[#00AAFF]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
@@ -1175,27 +1190,27 @@ export default function App() {
         </div>
       </header>
 
-      {/* GRID LAYOUT ESTRUTURAL */}
-      <main className="flex-grow flex flex-col xl:flex-row items-center xl:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 xl:gap-8 w-full max-w-[1500px] mx-auto">
+      {/* ESTRUTURA RESPONSIVA CORRIGIDA DEFINITIVAMENTE: sidebars só em telas maiores que 1300px */}
+      <main className="flex-grow flex flex-col min-[1300px]:flex-row items-center min-[1300px]:items-start justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 lg:gap-10 w-full max-w-[1600px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] 2xl:w-[300px] shrink-0 sticky top-8 no-print">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
         </aside>
 
-        {/* COLUNA CENTRAL: OCUPE TODO O ESPAÇO ATÉ 4XL */}
-        <div className="w-full max-w-4xl flex-1 print-container flex flex-col gap-6 min-w-0">
+        {/* COLUNA CENTRAL: AGORA COM FLEX-1 E LARGURA GARANTIDA, OCUPA TODO O ESPAÇO ATÉ MAX-W-4XL */}
+        <div className="w-full max-w-4xl flex-1 print-container flex flex-col gap-6 min-w-[300px]">
 
           {/* ESPAÇO PARA ANÚNCIO - TOPO CENTRAL */}
-          <div className="w-full min-h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print overflow-hidden bg-[#020617] relative z-10 flex items-center justify-center">
+          <div className="w-full min-h-[90px] border-2 border-dashed border-slate-800/10 rounded-2xl no-print overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
             <AdBanner />
           </div>
 
@@ -1654,7 +1669,7 @@ export default function App() {
                     </span>
                   ) : (
                     <>
-                      <CheckCircle className="w-6 h-6" /> Prova concluída!
+                      <CheckCircle className="w-6 h-6" /> Teste concluído!
                     </>
                   )}
                 </div>
@@ -1976,20 +1991,20 @@ export default function App() {
           )}
 
           {/* ESPAÇO PARA ANÚNCIO - RODAPÉ CENTRAL */}
-          <div className="w-full min-h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-[#020617] relative z-10 flex items-center justify-center">
+          <div className="w-full min-h-[250px] border-2 border-dashed border-slate-800/10 rounded-3xl no-print mt-6 shrink-0 overflow-hidden bg-transparent relative z-10 flex items-center justify-center">
             <AdBanner />
           </div>
         </div>
 
-        {/* ESPAÇO PARA ANÚNCIO - DIREITA (Simétrico à esquerda para manter o eixo central intacto) */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[300px] shrink-0 sticky top-8 no-print">
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+        {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] 2xl:w-[300px] shrink-0 sticky top-8 no-print">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-[#020617] relative z-10">
+          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
         </aside>
