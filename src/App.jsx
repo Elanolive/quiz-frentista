@@ -590,6 +590,8 @@ export default function App() {
 
   useEffect(() => {
     document.title = 'ETX Academy | Desafio NR 20';
+    // Forçar a cor de fundo no body de forma definitiva
+    document.body.style.backgroundColor = '#020617';
     
     setIsDesktop(window.innerWidth >= 1300);
     const handleResize = () => setIsDesktop(window.innerWidth >= 1300);
@@ -1168,7 +1170,7 @@ export default function App() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#020617] to-transparent opacity-80"></div>
         <div className="z-10 text-center">
           <h1 className="text-5xl font-black tracking-tighter">
-            <span className="text-[#00FF00]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
+            <span className="text-[#00AAFF]">ET</span><span className="text-[#00AAFF]">X</span> <span className="text-slate-100">ACADEMY</span>
           </h1>
           <p className="text-[#00AAFF] text-sm font-bold mt-2 uppercase tracking-[0.2em]">
             Sorte é estar preparado quando a oportunidade vem!
@@ -1180,17 +1182,17 @@ export default function App() {
       <main className="flex-grow flex flex-col xl:flex-row items-stretch justify-center p-4 sm:p-6 lg:p-8 print:p-0 gap-6 xl:gap-10 w-full max-w-[1800px] mx-auto">
         
         {/* ESPAÇO PARA ANÚNCIO - ESQUERDA */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[250px] min-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
+          {/* REMOVIDO: Segundo anúncio da lateral esquerda para testar o layout */}
         </aside>
 
         {/* COLUNA CENTRAL: COM FLEX-1 E MAX-W-FULL PARA GARANTIR LARGURA TOTAL NO CENTRO */}
         <div className="w-full flex-1 print-container flex flex-col gap-6 min-w-0 max-w-full">
+
+          {/* REMOVIDO: Anúncio do topo central para testar o layout */}
 
           {step === 'intro' && (
             <div
@@ -1975,13 +1977,11 @@ export default function App() {
 
 
         {/* ESPAÇO PARA ANÚNCIO - DIREITA */}
-        <aside className="hidden xl:flex flex-col gap-6 w-[250px] min-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] shrink-0 sticky top-8 no-print">
+        <aside className="hidden min-[1300px]:flex flex-col gap-6 w-[250px] min-w-[250px] max-w-[250px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] shrink-0 sticky top-8 no-print">
           <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
             {isDesktop && <AdBanner />}
           </div>
-          <div className="w-full h-[250px] border-2 border-dashed border-slate-800/10 rounded-2xl overflow-hidden bg-transparent relative z-10">
-            {isDesktop && <AdBanner />}
-          </div>
+          {/* REMOVIDO: Segundo anúncio da lateral direita para testar o layout */}
         </aside>
       </main>
 
