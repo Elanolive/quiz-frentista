@@ -1056,6 +1056,16 @@ export default function App() {
       pontuacao: finalScore,
       totalPerguntas: QUESTIONS.length,
       dataHora: new Date().toLocaleString('pt-BR'),
+      resumo: shuffledQuestions.map((q, idx) => {
+        const userAnswerIndex = finalAnswers[idx];
+        return {
+          pergunta: q.text,
+          suaResposta: userAnswerIndex !== null ? q.options[userAnswerIndex] : 'Não respondida (Tempo esgotado)',
+          respostaCorreta: q.options[q.correct],
+          isCorrect: userAnswerIndex === q.correct,
+          explicacao: q.explanation,
+        };
+      }),
     };
 
     try {
